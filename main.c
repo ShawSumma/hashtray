@@ -125,7 +125,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = RandomInt(0, INT_MAX);
+      data = (uint32_t)RandomInt(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -180,8 +180,8 @@ insert_test(table * test_table)
   RESET_OUTCOME_STATS(oc)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = RandomInt(0, INT_MAX);
-    result[i].metadatum = RandomInt(0, METADATA_MAXIMUM);
+    result[i].datum = (uint32_t)RandomInt(0, INT_MAX);
+    result[i].metadatum = (uint32_t)RandomInt(0, METADATA_MAXIMUM);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -236,9 +236,21 @@ mix_insert_lookup_test(void)
 
   DATA_TYPE queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    state = RandomInt(INSERT, LOOKUP);
+    switch (RandomInt(INSERT, LOOKUP)) {
+      case 0:
+        state = INSERT;
+        break;
+      case 1:
+        state = INSERT_AND_LOOKUP;
+        break;
+      case 2:
+        state = LOOKUP;
+        break;
+      default:
+        assert(0);
+    }
 
-    uint32_t data = RandomInt(0, INT_MAX);
+    uint32_t data = (uint32_t)RandomInt(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
