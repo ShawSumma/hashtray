@@ -10,8 +10,11 @@ Nik Sultana, University of Pennsylvania, November 2017
 #include <stdbool.h>
 #include <stdint.h>
 
-// FIXME keysize needs to be bigger to occupy more of this table size. Currently
-//       keys are of type "char", which only allows us to address 256 elements.
+// NOTE keysize needs to be bigger to occupy more of this table size. Currently
+//      KEY_TYPE==uint8_t, which allows us to address 256 cells, each with
+//      NUM_CELL_ENTRIES entries (i.e., if NUM_CELL_ENTRIES==4 then we can
+//      store around a thousand distinct pieces of info).
+//
 #define TABLE_SIZE 10000
 
 #define NUM_CELL_ENTRIES 4
