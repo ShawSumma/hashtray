@@ -48,7 +48,6 @@ KEY_TYPE fingerprint_of_DATA_TYPE(DATA_TYPE data);
 
 struct idxs {
   KEY_TYPE idx[CHOICES];
-//  uint32_t idx[CHOICES]; FIXME      
 };
 
 KEY_TYPE alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint);
