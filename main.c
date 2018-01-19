@@ -3,6 +3,9 @@ Partial-key cuckoo hash.
 (aka A cuckoo filter with a value associated with each fingerprint)
 Nik Sultana, University of Pennsylvania, November 2017
 
+NOTE parts of this code are tightly coupled with an amd64 ISA, specifically to
+     poll the CPU's time-stamp counter.
+
 TODO
 * "Fast mode" vs "thorough mode" when checking blocks.
 * Expiry of records.
