@@ -139,18 +139,18 @@ lookup_test(struct test_data * test_dataset, table * test_table)
 #if 0
     PRINT_OUTCOME(o);
 #endif
-//    if (temporary_table) {
-//      assert(NOT_FOUND == o ||
-//             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
-//*/);
-//    } else {
-//      assert(OK == o || // Assuming that anything in test_dataset appears in test_table.
-//             NOT_FOUND == o/*..or not FIXME */);  
-//      if (OK == o) {
-//        // FIXME This can fail because of collision.  
-//        //assert(queried_metadata == test_dataset[i].metadatum);
-//      }
-//    }
+    if (temporary_table) {
+      assert(NOT_FOUND == o ||
+             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
+*/);
+    } else {
+      assert(OK == o || // Assuming that anything in test_dataset appears in test_table.
+             NOT_FOUND == o/*..or not FIXME */);  
+      if (OK == o) {
+        // FIXME This can fail because of collision.  
+        //assert(queried_metadata == test_dataset[i].metadatum);
+      }
+    }
     INCREMENT_OUTCOME(oc, o)
     update_stats(i, one, two, &average, &max, &min);
   }
