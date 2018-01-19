@@ -107,10 +107,10 @@ lookup_test(struct test_data * test_dataset, table * test_table)
   uint64_t max = 0;
   uint64_t min = 0;
 
-  bool empty_table = false;
+  bool temporary_table = false;
   if (NULL == test_table) {
     test_table = create_table();
-    empty_table = true;
+    temporary_table = true;
   }
 
   enum outcome o;
@@ -139,7 +139,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
 #if 0
     PRINT_OUTCOME(o);
 #endif
-//    if (empty_table) {
+//    if (temporary_table) {
 //      assert(NOT_FOUND == o ||
 //             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
 //*/);
@@ -155,7 +155,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
     update_stats(i, one, two, &average, &max, &min);
   }
 
-  if (empty_table) {
+  if (temporary_table) {
     destroy_table(test_table);
   }
 
