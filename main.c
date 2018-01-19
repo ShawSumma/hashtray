@@ -140,9 +140,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
     PRINT_OUTCOME(o);
 #endif
     if (temporary_table) {
-      assert(NOT_FOUND == o ||
-             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
-*/);
+      assert(NOT_FOUND == o);
     } else {
       assert(OK == o || // Assuming that anything in test_dataset appears in test_table.
              NOT_FOUND == o/*..or not FIXME */);  
