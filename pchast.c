@@ -1,0 +1,213 @@
+/*
+Partial-key cuckoo hash.
+(aka A cuckoo filter with a value associated with each fingerprint)
+Nik Sultana, University of Pennsylvania, November 2017
+*/
+
+#ifdef PCHAST_ASSERT
+#include <assert.h>
+#endif // PCHAST_ASSERT
+#include <stdlib.h>
+
+#include "pchast.h"
+
+const char * outcome_str[] =
+  {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
+
+static union {
+  uint64_t u64;
+  uint32_t u32[2];
+} prng_state;
+
+void
+init_prng(uint64_t seed)
+{
+  prng_state.u64 = seed;
+}
+
+uint32_t
+prng(void)
+{
+  // Based on the middle-square method.
+  prng_state.u64 *= 2 + prng_state.u64;
+  uint32_t temp = prng_state.u32[0];
+  prng_state.u32[0] = prng_state.u32[1] >> 16;
+  prng_state.u32[1] = temp << 16;
+  return (uint32_t)prng_state.u64;
+}
+
+uint8_t
+hash_of_uint32_to_uint8(uint32_t data)
+{
+  union {
+    uint32_t as_uint32_t;
+    uint8_t as_byte_array[4];
+  } conversion;
+  conversion.as_uint32_t = data;
+  return conversion.as_byte_array[0] ^
+    conversion.as_byte_array[1] ^
+    conversion.as_byte_array[2] ^
+    conversion.as_byte_array[3];
+}
+
+uint8_t
+hash_of_uint8_to_uint8(uint8_t data)
+{
+  return data;
+}
+
+KEY_TYPE
+hash_of_KEY_TYPE(KEY_TYPE data)
+{
+  return hash_of_uint8_to_uint8(data);
+}
+
+KEY_TYPE
+hash_of_DATA_TYPE(DATA_TYPE data)
+{
+  return hash_of_uint32_to_uint8(data);
+}
+
+KEY_TYPE
+fingerprint_of_DATA_TYPE(DATA_TYPE data)
+{
+  return hash_of_uint32_to_uint8(1 - data);
+}
+
+KEY_TYPE
+alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
+{
+  return idx ^ hash_of_KEY_TYPE(fingerprint);
+}
+
+struct idxs
+idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
+{
+  struct idxs result;
+  *fingerprint = fingerprint_of_DATA_TYPE(data);
+  // NOTE here we assume that CHOICES==2
+  result.idx[0] = hash_of_DATA_TYPE(data);
+  result.idx[1] = result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint);
+#ifdef PCHAST_ASSERT
+  assert((int)result.idx[0] >= 0);
+  assert((int)result.idx[1] >= 0);
+#endif // PCHAST_ASSERT
+  return result;
+}
+
+enum outcome
+insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
+{
+  KEY_TYPE fingerprint;
+  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  for (int idx = 0; idx < CHOICES; idx++) {
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      int table_idx = (int)is.idx[idx];
+      if ((*t)[table_idx].entry[i].clear) {
+        (*t)[table_idx].entry[i].clear = false;
+        (*t)[table_idx].entry[i].key = fingerprint;
+        (*t)[table_idx].entry[i].value = metadata;
+        return OK;
+      }
+    }
+  }
+#ifdef FAIL_EAGERLY
+  return BLOCKS_FULL;
+#else
+  KEY_TYPE table_idx;
+#ifdef LAME_KICK_SEQUENCE
+  #define DEFAULT_IDX 0
+  table_idx = is.idx[DEFAULT_IDX];
+#else
+  table_idx = is.idx[(int)prng() % CHOICES];
+#endif
+
+  int entry;
+#ifdef LAME_KICK_SEQUENCE
+    #define DEFAULT_ENTRY 0
+    entry = DEFAULT_ENTRY;
+#endif
+
+  KEY_TYPE swapped_key;
+  VALUE_TYPE swapped_value;
+  for (int try = 0; try < MAX_KICKOUTS; try++) {
+#ifndef LAME_KICK_SEQUENCE
+    entry = (int)prng() % NUM_CELL_ENTRIES;
+#endif
+
+    swapped_key = (*t)[(int)table_idx].entry[entry].key;
+    swapped_value = (*t)[(int)table_idx].entry[entry].value;
+    (*t)[(int)table_idx].entry[entry].key = fingerprint;
+    (*t)[(int)table_idx].entry[entry].value = metadata;
+
+    if ((*t)[(int)table_idx].entry[entry].clear) {
+      (*t)[(int)table_idx].entry[entry].clear = false;
+      return OK;
+    }
+
+    fingerprint = swapped_key;
+    metadata = swapped_value;
+   // NOTE in addition to exploring the alternative block we could also explore
+   //      a fingerprint's "non-alternative" block for available entries --
+   //      that is, pick some other fingerprint in the current block and
+   //      attempt to kick it, rather than the current fingerprint; but it's
+   //      not obvious which to pick, so the current approach feels simplest.
+    table_idx = alt_idx(table_idx, fingerprint);
+  }
+  return GAVE_UP;
+#endif
+}
+
+enum outcome
+delete(table * t, DATA_TYPE data)
+{
+  KEY_TYPE fingerprint;
+  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  for (int idx = 0; idx < CHOICES; idx++) {
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      int table_idx = (int)is.idx[idx];
+      if (!(*t)[table_idx].entry[i].clear &&
+          (*t)[table_idx].entry[i].key == fingerprint) {
+        (*t)[table_idx].entry[i].clear = true;
+        return OK;
+      }
+    }
+  }
+  return NOT_FOUND;
+}
+
+enum outcome
+lookup(table * t, DATA_TYPE data, DATA_TYPE * metadata)
+{
+  KEY_TYPE fingerprint;
+  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  for (int idx = 0; idx < CHOICES; idx++) {
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      KEY_TYPE table_idx = is.idx[idx];
+      if (!(*t)[(int)table_idx].entry[i].clear &&
+          (*t)[(int)table_idx].entry[i].key == fingerprint) {
+        *metadata = (*t)[(int)table_idx].entry[i].value;
+        return OK;
+      }
+    }
+  }
+  return NOT_FOUND;
+}
+
+table *
+create_table(void)
+{
+  table * t = malloc(sizeof(*t));
+  for (int idx = 0; idx < TABLE_SIZE; idx++) {
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      (*t)[idx].entry[i].clear = true;
+    }
+  }
+  return t;
+}
+
+void
+destroy_table(table * t)
+{
+  free(t);
+}
