@@ -142,8 +142,9 @@ lookup_test(struct test_data * test_dataset, table * test_table)
     if (temporary_table) {
       assert(NOT_FOUND == o);
     } else {
-      assert(OK == o || // Assuming that anything in test_dataset appears in test_table.
-             NOT_FOUND == o/*..or not FIXME  could the entry have got kicked out in the mean time?  */);
+      assert(OK == o || // Everything in test_dataset should appear in test_table...
+             NOT_FOUND == o/*..but it might not appear, if it's been kicked
+                             out: there's a check for this further down.*/);
       if (OK == o) {
         // FIXME Can this can fail because of collision?
         //assert(queried_metadata == test_dataset[i].metadatum);
@@ -201,8 +202,9 @@ insert_test(table * test_table)
 #if 0
     PRINT_OUTCOME(o);
 #endif
-    assert(OK == o || // Assuming that table doesn't fill up.
-           GAVE_UP == o/* FIXME how easily should we give up?*/);
+    assert(OK == o || // Assuming that table doesn't fill up...
+           GAVE_UP == o/*... otherwise we might give up trying to add an item
+                         (after MAX_KICKOUTS has been exceeded).*/);
 
     INCREMENT_OUTCOME(oc, o)
     update_stats(i, one, two, &average, &max, &min);
