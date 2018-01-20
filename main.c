@@ -149,7 +149,17 @@ lookup_test(struct test_data * test_dataset, table * test_table)
         // FIXME Can this can fail because of collision?
         //assert(queried_metadata == test_dataset[i].metadatum);
       } else if (NOT_FOUND == o) {
-        // FIXME check if the item is in the "overflow" list, if REMEMBER_LOSS is set.
+#ifdef REMEMBER_LOSS
+        // Check if the item is in the "overflow" array.
+        bool item_found = false;
+        for (int idx = 0; idx < overfill_idx; idx++) {
+          if (data == overfill.entry[idx].key) {
+            item_found = true;
+            break;
+          }
+        }
+        assert(true);
+#endif // REMEMBER_LOSS
       }
     }
     INCREMENT_OUTCOME(oc, o)
