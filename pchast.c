@@ -4,12 +4,40 @@ Partial-key cuckoo hash.
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
+
 #ifdef PCHAST_ASSERT
 #include <assert.h>
 #endif // PCHAST_ASSERT
 #include <stdlib.h>
 
 #include "pchast.h"
+
+#ifdef REMEMBER_LOSS
+#include <assert.h>
+#include "stdio.h"
+
+struct overfill_t overfill;
+int overfill_idx = 0;
+
+void
+print_overfill(bool show_entries)
+{
+  assert(overfill_idx >= 0);
+  printf("overfill_idx=%d\n", overfill_idx);
+  if (show_entries) {
+    for (int idx = 0; idx < overfill_idx; idx++) {
+      printf("%d. key=%d, value=%d\n", idx, overfill.entry[idx].key
+          , overfill.entry[idx].value);
+    }
+  }
+}
+
+void
+reset_overfill(void)
+{
+  overfill_idx = 0;
+}
+#endif // REMEMBER_LOSS
 
 const char * outcome_str[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
@@ -154,6 +182,16 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
    //      not obvious which to pick, so the current approach feels simplest.
     table_idx = alt_idx(table_idx, fingerprint);
   }
+#ifdef REMEMBER_LOSS
+  // Record which items got kicked out of the table.
+  // NOTE This behaviour might be exploited, to have elements of the table
+  //      erased (having them kicked out), if an adversary can engineer a
+  //      series of moves.
+  overfill.entry[overfill_idx].clear = false;
+  overfill.entry[overfill_idx].key = fingerprint;
+  overfill.entry[overfill_idx].value = metadata;
+  overfill_idx += 1;
+#endif // REMEMBER_LOSS
   return GAVE_UP;
 #endif
 }

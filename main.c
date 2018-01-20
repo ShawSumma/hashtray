@@ -143,10 +143,12 @@ lookup_test(struct test_data * test_dataset, table * test_table)
       assert(NOT_FOUND == o);
     } else {
       assert(OK == o || // Assuming that anything in test_dataset appears in test_table.
-             NOT_FOUND == o/*..or not FIXME */);  
+             NOT_FOUND == o/*..or not FIXME  could the entry have got kicked out in the mean time?  */);
       if (OK == o) {
-        // FIXME This can fail because of collision.  
+        // FIXME Can this can fail because of collision?
         //assert(queried_metadata == test_dataset[i].metadatum);
+      } else if (NOT_FOUND == o) {
+        // FIXME check if the item is in the "overflow" list, if REMEMBER_LOSS is set.
       }
     }
     INCREMENT_OUTCOME(oc, o)
@@ -160,6 +162,11 @@ lookup_test(struct test_data * test_dataset, table * test_table)
   printf("lookup_test min / average / max duration: %llu / %llu / %llu ticks\n",
       min, average, max);
   PRINT_OUTCOME_STATS(oc)
+
+#ifdef REMEMBER_LOSS
+  print_overfill(false);
+  reset_overfill();
+#endif // REMEMBER_LOSS
 }
 
 #define METADATA_MAXIMUM 10
@@ -204,6 +211,11 @@ insert_test(table * test_table)
   printf("insert_test min / average / max duration: %llu / %llu / %llu ticks\n",
       min, average, max);
   PRINT_OUTCOME_STATS(oc)
+
+#ifdef REMEMBER_LOSS
+  print_overfill(false);
+  reset_overfill();
+#endif // REMEMBER_LOSS
 
   return result;
 }

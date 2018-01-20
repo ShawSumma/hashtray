@@ -84,4 +84,16 @@ enum outcome lookup(table * t, DATA_TYPE data, DATA_TYPE * metadata);
 
 table * create_table(void);
 void destroy_table(table * t);
+
+#ifdef REMEMBER_LOSS
+#define NUM_OVERFILL_ENTRIES 200
+struct overfill_t {
+  struct entry entry[NUM_OVERFILL_ENTRIES];
+};
+extern struct overfill_t overfill;
+extern int overfill_idx;
+void print_overfill(bool);
+void reset_overfill(void);
+#endif // REMEMBER_LOSS
+
 #endif // PCHAST
