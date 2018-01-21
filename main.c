@@ -146,7 +146,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
              NOT_FOUND == o/*..but it might not appear, if it's been kicked
                              out: there's a check for this further down.*/);
       if (OK == o) {
-        // FIXME Can this can fail because of collision?
+        // FIXME Check if this fails because of collision    
         //assert(queried_metadata == test_dataset[i].metadatum);
       } else if (NOT_FOUND == o) {
 #ifdef REMEMBER_LOSS
@@ -258,7 +258,6 @@ mix_insert_lookup_test(void)
   table * test_table = create_table();
   enum outcome o;
 
-  DATA_TYPE queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
     switch (RandomInt(INSERT, LOOKUP)) {
       case 0:
@@ -275,6 +274,7 @@ mix_insert_lookup_test(void)
     }
 
     uint32_t data = (uint32_t)RandomInt(0, INT_MAX);
+    DATA_TYPE queried_metadata = (DATA_TYPE)RandomInt(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -287,29 +287,26 @@ mix_insert_lookup_test(void)
     switch (state) {
     case INSERT:
       one = rdtscp(&aux);
-      o = insert(test_table, data, queried_metadata/* FIXME uninitialised */);
+      o = insert(test_table, data, queried_metadata);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
 #endif
-//      assert(NOT_FOUND == o ||
-//             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
-//*/);
+      assert(GAVE_UP == o ||
+             OK == o);
       INCREMENT_OUTCOME(oc_insert, o)
       update_stats(i, one, two, &average_insert, &max_insert, &min_insert);
       break;
 
     case INSERT_AND_LOOKUP:
-      (void)insert(test_table, data, queried_metadata/* FIXME uninitialised */);
+      (void)insert(test_table, data, queried_metadata);
       one = rdtscp(&aux);
       o = lookup(test_table, data, &queried_metadata);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(NOT_FOUND == o ||
-             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
-*/);
+      assert(OK == o);
       INCREMENT_OUTCOME(oc_lookup_expectfind, o)
       update_stats(i, one, two, &average_lookup_expectfind, &max_lookup_expectfind, &min_lookup_expectfind);
       break;
@@ -322,8 +319,9 @@ mix_insert_lookup_test(void)
       PRINT_OUTCOME(o);
 #endif
       assert(NOT_FOUND == o ||
-             OK == o /*Allowing for false-positive -- FIXME table should be empty!  
-*/);
+             OK == o /*This can occur if:
+                       * we happen to regenerate a random value that was previously generated during the INSERT phase
+                       * in case of a false-positive (unless we started with an empty table and didn't insert anything).*/);
       INCREMENT_OUTCOME(oc_lookup_notexpectfind, o)
       update_stats(i, one, two, &average_lookup_notexpectfind, &max_lookup_notexpectfind, &min_lookup_notexpectfind);
       break;
