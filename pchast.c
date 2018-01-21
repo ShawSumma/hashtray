@@ -26,8 +26,8 @@ print_overfill(bool show_entries)
   printf("overfill_idx=%d\n", overfill_idx);
   if (show_entries) {
     for (int idx = 0; idx < overfill_idx; idx++) {
-      printf("%d. key=%d, value=%d\n", idx, overfill.entry[idx].key
-          , overfill.entry[idx].value);
+      printf("%d. key=%d, value=%d\n", idx, overfill.entry[idx].key,
+          overfill.entry[idx].value);
     }
   }
 }
