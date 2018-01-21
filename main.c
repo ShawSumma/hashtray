@@ -146,8 +146,20 @@ lookup_test(struct test_data * test_dataset, table * test_table)
              NOT_FOUND == o/*..but it might not appear, if it's been kicked
                              out: there's a check for this further down.*/);
       if (OK == o) {
-        // FIXME Check if this fails because of collision    
-        //assert(queried_metadata == test_dataset[i].metadatum);
+        // Check if this fails because of collision.
+        if (queried_metadata != test_dataset[i].metadatum) {
+          bool collision_found = false;
+          for (int idx = 0; idx < collision_idx; idx++) {
+            if (data == collision.entry[idx].key ||
+                data == collision.collided_with[idx].key) {
+              assert(queried_metadata == collision.entry[idx].value ||
+                  queried_metadata == collision.collided_with[idx].value);
+              collision_found = true;
+              break;
+            }
+          }
+          assert(collision_idx == 0 || collision_found);
+        }
       } else if (NOT_FOUND == o) {
 #ifdef REMEMBER_LOSS
         // Check if the item is in the "overflow" array.
@@ -180,7 +192,6 @@ lookup_test(struct test_data * test_dataset, table * test_table)
 #endif // REMEMBER_LOSS
 }
 
-#define METADATA_MAXIMUM 10
 struct test_data *
 insert_test(table * test_table)
 {
@@ -199,7 +210,7 @@ insert_test(table * test_table)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
     result[i].datum = (uint32_t)RandomInt(0, INT_MAX);
-    result[i].metadatum = (uint32_t)RandomInt(0, METADATA_MAXIMUM);
+    result[i].metadatum = (uint32_t)i;
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -228,6 +239,11 @@ insert_test(table * test_table)
   print_overfill(false);
   reset_overfill();
 #endif // REMEMBER_LOSS
+
+#ifdef REMEMBER_COLLISIONS
+  print_collision(false);
+  reset_collision();
+#endif // REMEMBER_COLLISIONS
 
   return result;
 }
@@ -378,7 +394,8 @@ main()
   printf("\n");
 
   // Test 2: How long insertion takes
-  // FIXME check if item isn't inserted twice? Check for collisions?
+  // (We can set a compilation directive to pchast record hash collisions,
+  //  including if the same randomly-generate value is generated twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
   table * my_tab = create_table();

@@ -12,6 +12,10 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #include "pchast.h"
 
+#ifdef LOG_INSERTS
+#include <stdio.h>
+#endif // LOG_INSERTS
+
 #ifdef REMEMBER_LOSS
 #include <assert.h>
 #include "stdio.h"
@@ -38,6 +42,34 @@ reset_overfill(void)
   overfill_idx = 0;
 }
 #endif // REMEMBER_LOSS
+
+#ifdef REMEMBER_COLLISIONS
+#include <assert.h>
+#include "stdio.h"
+
+struct collision_t collision;
+int collision_idx = 0;
+
+void
+print_collision(bool show_entries)
+{
+  assert(collision_idx >= 0);
+  printf("collision_idx=%d\n", collision_idx);
+  if (show_entries) {
+    for (int idx = 0; idx < collision_idx; idx++) {
+      printf("%d. key=%d, value=%d (collided with key=%d, value=%d)\n",
+          idx, collision.entry[idx].key, collision.entry[idx].value,
+          collision.collided_with[idx].key, collision.collided_with[idx].value);
+    }
+  }
+}
+
+void
+reset_collision(void)
+{
+  collision_idx = 0;
+}
+#endif // REMEMBER_COLLISIONS
 
 const char * outcome_str[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
@@ -128,6 +160,10 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
 {
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+#ifdef LOG_INSERTS
+  printf("%u %d %d %d %d\n", data, metadata, fingerprint,
+      is.idx[0], is.idx[1]);
+#endif // LOG_INSERTS
   for (int idx = 0; idx < CHOICES; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       int table_idx = (int)is.idx[idx];
@@ -137,6 +173,26 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
         (*t)[table_idx].entry[i].value = metadata;
         return OK;
       }
+#ifdef REMEMBER_COLLISIONS
+      else {
+        // FIXME check for collision among the other entries (which might
+        //       have been moved to an alternative bucket).
+        if ((*t)[table_idx].entry[i].key == fingerprint) {
+          collision.entry[collision_idx].key = fingerprint;
+          collision.entry[collision_idx].value = metadata;
+          collision.collided_with[collision_idx].key = (*t)[table_idx].entry[i].key;
+          collision.collided_with[collision_idx].value = (*t)[table_idx].entry[i].value;
+#if 0
+          printf("(%d, %d) collided with (%d, %d)\n",
+          collision.entry[collision_idx].key,
+          collision.entry[collision_idx].value,
+          collision.collided_with[collision_idx].key,
+          collision.collided_with[collision_idx].value);
+#endif
+          collision_idx += 1;
+        }
+      }
+#endif // REMEMBER_COLLISIONS
     }
   }
 #ifdef FAIL_EAGERLY
@@ -163,6 +219,8 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
     entry = (int)prng() % NUM_CELL_ENTRIES;
 #endif
 
+    // FIXME check for collision among the other entries (which might
+    //       have been moved to an alternative bucket).
     swapped_key = (*t)[(int)table_idx].entry[entry].key;
     swapped_value = (*t)[(int)table_idx].entry[entry].value;
     (*t)[(int)table_idx].entry[entry].key = fingerprint;

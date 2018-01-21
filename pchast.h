@@ -96,4 +96,16 @@ void print_overfill(bool);
 void reset_overfill(void);
 #endif // REMEMBER_LOSS
 
+#ifdef REMEMBER_COLLISIONS
+#define NUM_COLLIDED_ENTRIES 200
+struct collision_t {
+  struct entry entry[NUM_COLLIDED_ENTRIES];
+  struct entry collided_with[NUM_COLLIDED_ENTRIES];
+};
+extern struct collision_t collision;
+extern int collision_idx;
+void print_collision(bool);
+void reset_collision(void);
+#endif // REMEMBER_COLLISIONS
+
 #endif // PCHAST
