@@ -96,20 +96,6 @@ prng(void)
   return (uint32_t)prng_state.u64;
 }
 
-uint8_t
-hash_of_uint32_to_uint8(uint32_t data)
-{
-  union {
-    uint32_t as_uint32_t;
-    uint8_t as_byte_array[4];
-  } conversion;
-  conversion.as_uint32_t = data;
-  return conversion.as_byte_array[0] ^
-    conversion.as_byte_array[1] ^
-    conversion.as_byte_array[2] ^
-    conversion.as_byte_array[3];
-}
-
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
 {
@@ -124,6 +110,20 @@ hash_of_KEY_TYPE(KEY_TYPE data)
   hash += hash >> 6;
 
   return hash + 1;
+}
+
+uint8_t
+hash_of_uint32_to_uint8(uint32_t data)
+{
+  union {
+    uint32_t as_uint32_t;
+    uint8_t as_byte_array[4];
+  } conversion;
+  conversion.as_uint32_t = data;
+  return hash_of_KEY_TYPE(conversion.as_byte_array[0]) ^
+    hash_of_KEY_TYPE(conversion.as_byte_array[1]) ^
+    hash_of_KEY_TYPE(conversion.as_byte_array[2]) ^
+    hash_of_KEY_TYPE(conversion.as_byte_array[3]);
 }
 
 KEY_TYPE
