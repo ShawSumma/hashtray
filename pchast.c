@@ -161,8 +161,8 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
 #ifdef LOG_INSERTS
-  printf("%u %d %d %d %d\n", data, metadata, fingerprint,
-      is.idx[0], is.idx[1]);
+  printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
+      data, metadata, fingerprint, is.idx[0], is.idx[1]);
 #endif // LOG_INSERTS
   for (int idx = 0; idx < CHOICES; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
