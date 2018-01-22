@@ -119,7 +119,17 @@ hash_of_uint8_to_uint8(uint8_t data)
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
 {
-  return hash_of_uint8_to_uint8(data);
+  KEY_TYPE hash = data;
+
+  // FIXME from http://www.azillionmonkeys.com/qed/hash.html
+  hash ^= hash << 3;
+  hash += hash >> 5;
+  hash ^= hash << 4;
+  hash += hash >> 17;
+  hash ^= hash << 25;
+  hash += hash >> 6;
+
+  return hash + 1;
 }
 
 KEY_TYPE
