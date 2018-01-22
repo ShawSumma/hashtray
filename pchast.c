@@ -110,12 +110,6 @@ hash_of_uint32_to_uint8(uint32_t data)
     conversion.as_byte_array[3];
 }
 
-uint8_t
-hash_of_uint8_to_uint8(uint8_t data)
-{
-  return data;
-}
-
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
 {
