@@ -17,7 +17,6 @@ TODO
 
 #define _GNU_SOURCE
 #include <assert.h>
-#include <pthread.h>
 #include <limits.h>
 #include <sched.h>
 #include <stdio.h>
