@@ -182,7 +182,7 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
           collision.entry[collision_idx].value = metadata;
           collision.collided_with[collision_idx].key = (*t)[table_idx].entry[i].key;
           collision.collided_with[collision_idx].value = (*t)[table_idx].entry[i].value;
-#if 0
+#ifdef DESCRIBE_COLLISIONS
           printf("(%d, %d) collided with (%d, %d)\n",
           collision.entry[collision_idx].key,
           collision.entry[collision_idx].value,
