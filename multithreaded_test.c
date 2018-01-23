@@ -24,6 +24,7 @@ struct server_info_t {
   uint8_t idx;
   bool shutdown;
   int seed;
+  // FIXME include connection statistics
 };
 #define NUM_SERVERS 10
 struct table * tbl = NULL;
@@ -31,6 +32,7 @@ struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
 #define MAX_SLEEP 10
+// FIXME #defined GOOD_VS_BAD_LIKELIHOOD
 
 struct sigaction sigact;
 
@@ -72,10 +74,32 @@ server_main(void * arg) {
   struct server_info_t * info = (struct server_info_t *)arg;
   printf("Server %d active\n", info->idx);
 
+  enum outcome o;
   while (! info->shutdown) {
     sleep((uint32_t)RandomInt(0, MAX_SLEEP));
 
-    // FIXME do interesting things here
+    DATA_TYPE host_id = (DATA_TYPE)RandomInt(0, INT_MAX); // FIXME weigh this to generate good and bad consistently
+    VALUE_TYPE classification;
+    o = lookup(tbl, host_id, &classification); // FIXME could time this.
+    switch (o) {
+    case OK:
+      // FIXME could check for collision.
+      break;
+    case NOT_FOUND:
+      // FIXME could check for whether this was kicked out.
+      // FIXME here could take the hit, to sleep according to whether host_id
+      //       relates to good or bad. This would reduce the throughput of the
+      //       model according to the amount of host_id's controlled by the
+      //       adversary, and our difficulty classifying them.
+      // FIXME Compare this against not having the classification in place.
+      o = insert(tbl, host_id, classification); // FIXME could time this.
+
+      // FIXME could also model reclassification at some sampling rate, to
+      //       make use of the "delete" feature of this data structure.
+      break;
+    default:
+      assert(0);
+    }
   }
 
   return NULL;
@@ -107,6 +131,7 @@ main()
   }
 
   destroy_table(tbl);
+  // FIXME print output stats from server_info_t
 
   printf("done\n");
   return 0;
