@@ -1,0 +1,113 @@
+/*
+Multithreaded test of using PCHAST
+Nik Sultana, University of Pennsylvania, January 2018
+*/
+
+#define _GNU_SOURCE
+#include <assert.h>
+#include <errno.h>
+#include <pthread.h>
+#include <limits.h>
+#include <sched.h>
+#include <signal.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "pchast.h"
+#include "randomlib.h"
+
+
+struct server_info_t {
+  uint8_t idx;
+  bool shutdown;
+  int seed;
+};
+#define NUM_SERVERS 10
+struct table * tbl = NULL;
+struct server_info_t server_info[NUM_SERVERS];
+pthread_t tid[NUM_SERVERS];
+
+#define MAX_SLEEP 10
+
+struct sigaction sigact;
+
+static void
+sig_handler (int signal) {
+  static int attempt = 0;
+  if (SIGINT == signal) {
+    if (0 == attempt) {
+      printf("Shutting down threads...\n"); // FIXME stderr
+      for (int i = 0; i < NUM_SERVERS; i++) {
+        server_info[i].shutdown = true;
+      }
+      attempt += 1;
+    } else {
+      printf("Cancelling threads...\n"); // FIXME stderr
+      for (int i = 0; i < NUM_SERVERS; i++) {
+        pthread_cancel(tid[i]);
+      }
+    }
+  }
+}
+
+void
+init_signals(void) {
+  sigact.sa_handler = &sig_handler;
+  sigemptyset(&sigact.sa_mask);
+  sigact.sa_flags = 0;
+  sigaction(SIGINT, &sigact, (struct sigaction *) NULL);
+}
+
+void
+exit_handler(void) {
+  sigemptyset(&sigact.sa_mask);
+}
+
+void *
+server_main(void * arg) {
+  assert(MAX_SLEEP < INT_MAX);
+  struct server_info_t * info = (struct server_info_t *)arg;
+  printf("Server %d active\n", info->idx);
+
+  while (! info->shutdown) {
+    sleep((uint32_t)RandomInt(0, MAX_SLEEP));
+
+    // FIXME do interesting things here
+  }
+
+  return NULL;
+}
+
+int
+main()
+{
+  atexit(exit_handler);
+  init_signals();
+  init_prng(PRNG_SEED);
+  RandomInitialise(1802,9373); // These values were suggested in randomlib.c
+
+  tbl = create_table();
+
+  for (int i = 0; i < NUM_SERVERS; i++) {
+    server_info[i].seed = RandomInt(0, INT_MAX);
+    server_info[i].shutdown = false;
+    server_info[i].idx = (uint8_t)i;
+    int error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
+    if (error) {
+      printf("pthread_create: %s\n", strerror(error)); // FIXME output to stderr
+      exit(1);
+    }
+  }
+
+  for (int i = 0; i < NUM_SERVERS; i++) {
+    pthread_join(tid[i], NULL);
+  }
+
+  destroy_table(tbl);
+
+  printf("done\n");
+  return 0;
+}
