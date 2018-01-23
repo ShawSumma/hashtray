@@ -31,11 +31,61 @@ struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
+// The number of distinct hosts on the network.
+#define NUM_HOSTS 100
+// The percentage of NUM_HOSTS that are "good".
+#define PERCENTAGE_GOOD_HOSTS 80
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
-#define MAX_SLEEP 10
+#define MAX_SLEEP 0
 // Maximum amount of time that an adversary can stall a connection .
 #define MAX_STALL 10
-// FIXME #defined GOOD_VS_BAD_LIKELIHOOD
+
+static VALUE_TYPE host[NUM_HOSTS];
+static int num_hosts = 0;
+static bool good_host[NUM_HOSTS];
+
+static int host_idx(VALUE_TYPE host_id);
+static int add_host(VALUE_TYPE host_id);
+static bool is_host_good(int host_idx);
+static void host_is_good(int host_idx, bool good);
+static void print_host_info(void);
+
+static int
+host_idx(VALUE_TYPE host_id) {
+  // FIXME inefficient
+  for (int i = 0; i < num_hosts; i++) {
+    if (host_id == host[i]) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static int
+add_host(VALUE_TYPE host_id) {
+  // NOTE I'm assuming that the host hasn't already been added; I don't check for that.
+  assert(num_hosts < NUM_HOSTS);
+  host[num_hosts] = host_id;
+  num_hosts += 1;
+  return num_hosts - 1;
+}
+
+static bool is_host_good(int host_idx) {
+  assert(host_idx < num_hosts);
+  return good_host[host_idx];
+}
+
+static void
+host_is_good(int host_idx, bool good) {
+  good_host[host_idx] = good;
+}
+
+static void
+print_host_info(void) {
+  for (int i = 0; i < num_hosts; i++) {
+    printf("%d : %d\n", host[i], good_host[i]);
+  }
+}
 
 struct sigaction sigact;
 
@@ -82,7 +132,29 @@ server_main(void * arg) {
   while (! info->shutdown) {
     sleep((uint32_t)RandomInt(0, MAX_SLEEP));
 
-    DATA_TYPE host_id = (DATA_TYPE)RandomInt(0, INT_MAX); // FIXME weigh this to generate good and bad consistently
+    DATA_TYPE host_id;
+    bool host_is_nice = false;
+    while (true) {
+      host_id = (DATA_TYPE)RandomInt(0, INT_MAX);
+
+      int hidx = host_idx(host_id);
+      if (-1 == hidx) {
+        if (num_hosts < NUM_HOSTS) {
+          hidx = add_host(host_id);
+          int goodness = RandomInt(0, 100);
+          host_is_nice = (goodness <= PERCENTAGE_GOOD_HOSTS);
+          host_is_good(hidx, host_is_nice);
+          break;
+        } else {
+          // We don't add more hosts in the simulation if we've reached our limit.
+          continue;
+        }
+      } else {
+        host_is_nice = is_host_good(hidx);
+        break;
+      }
+    }
+#if 0
     VALUE_TYPE classification;
     o = lookup(tbl, host_id, &classification); // FIXME could time this.
     switch (o) {
@@ -103,6 +175,13 @@ server_main(void * arg) {
       break;
     default:
       assert(0);
+    }
+#endif
+    if (!host_is_nice) {
+      printf("-"); fflush(stdout);
+      sleep((uint32_t)RandomInt(0, MAX_STALL));
+    } else {
+      printf("+"); fflush(stdout);
     }
   }
 
