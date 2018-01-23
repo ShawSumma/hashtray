@@ -47,7 +47,7 @@ void
 simple_test(DATA_TYPE data, DATA_TYPE metadata)
 {
   printf("simple_test: create table, insert data, query for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
-  table * my_tab = create_table();
+  struct table * my_tab = create_table();
   enum outcome o;
   o = insert(my_tab, data, metadata);
   assert(OK == o);
@@ -100,7 +100,7 @@ update_stats(int iteration, uint64_t time_before, uint64_t time_after,
 }
 
 void
-lookup_test(struct test_data * test_dataset, table * test_table)
+lookup_test(struct test_data * test_dataset, struct table * test_table)
 {
   uint64_t average = 0;
   uint64_t max = 0;
@@ -147,29 +147,13 @@ lookup_test(struct test_data * test_dataset, table * test_table)
       if (OK == o) {
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
-          bool collision_found = false;
-          for (int idx = 0; idx < collision_idx; idx++) {
-            if (data == collision.entry[idx].key ||
-                data == collision.collided_with[idx].key) {
-              assert(queried_metadata == collision.entry[idx].value ||
-                  queried_metadata == collision.collided_with[idx].value);
-              collision_found = true;
-              break;
-            }
-          }
-          assert(collision_idx == 0 || collision_found);
+#ifdef REMEMBER_COLLISIONS
+          assert(has_collided(data, queried_metadata));
+#endif // REMEMBER_COLLISIONS
         }
       } else if (NOT_FOUND == o) {
 #ifdef REMEMBER_LOSS
-        // Check if the item is in the "overflow" array.
-        bool item_found = false;
-        for (int idx = 0; idx < overfill_idx; idx++) {
-          if (data == overfill.entry[idx].key) {
-            item_found = true;
-            break;
-          }
-        }
-        assert(true);
+        assert(has_overflowed(data));
 #endif // REMEMBER_LOSS
       }
     }
@@ -192,7 +176,7 @@ lookup_test(struct test_data * test_dataset, table * test_table)
 }
 
 struct test_data *
-insert_test(table * test_table)
+insert_test(struct table * test_table)
 {
   assert(NULL != test_table);
 
@@ -270,7 +254,7 @@ mix_insert_lookup_test(void)
 
   enum {INSERT = 0, INSERT_AND_LOOKUP = 1, LOOKUP = 2} state;
 
-  table * test_table = create_table();
+  struct table * test_table = create_table();
   enum outcome o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
@@ -397,7 +381,7 @@ main()
   //  including if the same randomly-generate value is generated twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
-  table * my_tab = create_table();
+  struct table * my_tab = create_table();
   printf("Insertion test (of random data) into an empty table.\n");
   struct test_data * test_dataset = insert_test(my_tab);
   printf("\n");

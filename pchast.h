@@ -24,17 +24,9 @@ Nik Sultana, University of Pennsylvania, November 2017
 #define CHOICES 2
 #define MAX_KICKOUTS 500
 
-struct entry {
-  bool clear;
-  KEY_TYPE key;
-  VALUE_TYPE value;
-};
-
-struct cell {
-  struct entry entry[NUM_CELL_ENTRIES];
-};
-
-typedef struct cell table[TABLE_SIZE];
+struct entry;
+struct cell;
+struct table;
 
 #define PRNG_SEED 193852039
 void init_prng(uint64_t seed);
@@ -78,34 +70,31 @@ typedef unsigned outcome_count[END_MARKER];
   printf("\n"); \
 }
 
-enum outcome insert(table * t, DATA_TYPE data, DATA_TYPE metadata);
-enum outcome delete(table * t, DATA_TYPE data);
-enum outcome lookup(table * t, DATA_TYPE data, DATA_TYPE * metadata);
+enum outcome insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
+enum outcome delete(struct table * t, DATA_TYPE data);
+enum outcome lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata);
 
-table * create_table(void);
-void destroy_table(table * t);
+struct table * create_table(void);
+void destroy_table(struct table * t);
 
 #ifdef REMEMBER_LOSS
 #define NUM_OVERFILL_ENTRIES 200
-struct overfill_t {
-  struct entry entry[NUM_OVERFILL_ENTRIES];
-};
+struct overfill_t;
 extern struct overfill_t overfill;
 extern int overfill_idx;
 void print_overfill(bool);
 void reset_overfill(void);
+bool has_overflowed(uint32_t data);
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
 #define NUM_COLLIDED_ENTRIES 200
-struct collision_t {
-  struct entry entry[NUM_COLLIDED_ENTRIES];
-  struct entry collided_with[NUM_COLLIDED_ENTRIES];
-};
+struct collision_t;
 extern struct collision_t collision;
 extern int collision_idx;
 void print_collision(bool);
 void reset_collision(void);
+bool has_collided(uint32_t data, DATA_TYPE queried_metadata);
 #endif // REMEMBER_COLLISIONS
 
 #endif // PCHAST

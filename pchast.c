@@ -12,6 +12,20 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #include "pchast.h"
 
+struct entry {
+  bool clear;
+  KEY_TYPE key;
+  VALUE_TYPE value;
+};
+
+struct cell {
+  struct entry entry[NUM_CELL_ENTRIES];
+};
+
+struct table {
+  struct cell cell[TABLE_SIZE];
+};
+
 #ifdef LOG_INSERTS
 #include <stdio.h>
 #endif // LOG_INSERTS
@@ -20,7 +34,10 @@ Nik Sultana, University of Pennsylvania, November 2017
 #include <assert.h>
 #include "stdio.h"
 
-struct overfill_t overfill;
+struct overfill_t {
+  struct entry entry[NUM_OVERFILL_ENTRIES];
+} overfill;
+
 int overfill_idx = 0;
 
 void
@@ -41,13 +58,29 @@ reset_overfill(void)
 {
   overfill_idx = 0;
 }
+
+bool
+has_overflowed(uint32_t data) {
+  // Check if the item is in the "overflow" array.
+  bool item_found = false;
+  for (int idx = 0; idx < overfill_idx; idx++) {
+    if (data == overfill.entry[idx].key) {
+      item_found = true;
+      break;
+    }
+  }
+  return item_found;
+}
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
 #include <assert.h>
 #include "stdio.h"
 
-struct collision_t collision;
+struct collision_t {
+  struct entry entry[NUM_COLLIDED_ENTRIES];
+  struct entry collided_with[NUM_COLLIDED_ENTRIES];
+} collision;
 int collision_idx = 0;
 
 void
@@ -68,6 +101,25 @@ void
 reset_collision(void)
 {
   collision_idx = 0;
+}
+
+bool
+has_collided(uint32_t data, DATA_TYPE queried_metadata) {
+  bool result = false;
+  if (collision_idx == 0) {
+    result = true; // FIXME doesn't seem right.
+  } else {
+    for (int idx = 0; idx < collision_idx; idx++) {
+      if (data == collision.entry[idx].key ||
+          data == collision.collided_with[idx].key) {
+        assert(queried_metadata == collision.entry[idx].value ||
+            queried_metadata == collision.collided_with[idx].value);
+        result = true;
+        break;
+      }
+    }
+  }
+  return result;
 }
 #endif // REMEMBER_COLLISIONS
 
@@ -160,7 +212,7 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
 }
 
 enum outcome
-insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
+insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 {
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
@@ -171,21 +223,21 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
   for (int idx = 0; idx < CHOICES; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       int table_idx = (int)is.idx[idx];
-      if ((*t)[table_idx].entry[i].clear) {
-        (*t)[table_idx].entry[i].clear = false;
-        (*t)[table_idx].entry[i].key = fingerprint;
-        (*t)[table_idx].entry[i].value = metadata;
+      if (t->cell[table_idx].entry[i].clear) {
+        t->cell[table_idx].entry[i].clear = false;
+        t->cell[table_idx].entry[i].key = fingerprint;
+        t->cell[table_idx].entry[i].value = metadata;
         return OK;
       }
 #ifdef REMEMBER_COLLISIONS
       else {
         // FIXME check for collision among the other entries (which might
         //       have been moved to an alternative bucket).
-        if ((*t)[table_idx].entry[i].key == fingerprint) {
+        if (t->cell[table_idx].entry[i].key == fingerprint) {
           collision.entry[collision_idx].key = fingerprint;
           collision.entry[collision_idx].value = metadata;
-          collision.collided_with[collision_idx].key = (*t)[table_idx].entry[i].key;
-          collision.collided_with[collision_idx].value = (*t)[table_idx].entry[i].value;
+          collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
+          collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
 #ifdef DESCRIBE_COLLISIONS
           printf("(%d, %d) collided with (%d, %d)\n",
           collision.entry[collision_idx].key,
@@ -225,13 +277,13 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
 
     // FIXME check for collision among the other entries (which might
     //       have been moved to an alternative bucket).
-    swapped_key = (*t)[(int)table_idx].entry[entry].key;
-    swapped_value = (*t)[(int)table_idx].entry[entry].value;
-    (*t)[(int)table_idx].entry[entry].key = fingerprint;
-    (*t)[(int)table_idx].entry[entry].value = metadata;
+    swapped_key = t->cell[(int)table_idx].entry[entry].key;
+    swapped_value = t->cell[(int)table_idx].entry[entry].value;
+    t->cell[(int)table_idx].entry[entry].key = fingerprint;
+    t->cell[(int)table_idx].entry[entry].value = metadata;
 
-    if ((*t)[(int)table_idx].entry[entry].clear) {
-      (*t)[(int)table_idx].entry[entry].clear = false;
+    if (t->cell[(int)table_idx].entry[entry].clear) {
+      t->cell[(int)table_idx].entry[entry].clear = false;
       return OK;
     }
 
@@ -259,16 +311,16 @@ insert(table * t, DATA_TYPE data, DATA_TYPE metadata)
 }
 
 enum outcome
-delete(table * t, DATA_TYPE data)
+delete(struct table * t, DATA_TYPE data)
 {
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   for (int idx = 0; idx < CHOICES; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       int table_idx = (int)is.idx[idx];
-      if (!(*t)[table_idx].entry[i].clear &&
-          (*t)[table_idx].entry[i].key == fingerprint) {
-        (*t)[table_idx].entry[i].clear = true;
+      if (! t->cell[table_idx].entry[i].clear &&
+          t->cell[table_idx].entry[i].key == fingerprint) {
+        t->cell[table_idx].entry[i].clear = true;
         return OK;
       }
     }
@@ -277,16 +329,16 @@ delete(table * t, DATA_TYPE data)
 }
 
 enum outcome
-lookup(table * t, DATA_TYPE data, DATA_TYPE * metadata)
+lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
 {
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   for (int idx = 0; idx < CHOICES; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       KEY_TYPE table_idx = is.idx[idx];
-      if (!(*t)[(int)table_idx].entry[i].clear &&
-          (*t)[(int)table_idx].entry[i].key == fingerprint) {
-        *metadata = (*t)[(int)table_idx].entry[i].value;
+      if (! t->cell[(int)table_idx].entry[i].clear &&
+          t->cell[(int)table_idx].entry[i].key == fingerprint) {
+        *metadata = t->cell[(int)table_idx].entry[i].value;
         return OK;
       }
     }
@@ -294,20 +346,20 @@ lookup(table * t, DATA_TYPE data, DATA_TYPE * metadata)
   return NOT_FOUND;
 }
 
-table *
+struct table *
 create_table(void)
 {
-  table * t = malloc(sizeof(*t));
+  struct table * t = malloc(sizeof(*t));
   for (int idx = 0; idx < TABLE_SIZE; idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      (*t)[idx].entry[i].clear = true;
+      t->cell[idx].entry[i].clear = true;
     }
   }
   return t;
 }
 
 void
-destroy_table(table * t)
+destroy_table(struct table * t)
 {
   free(t);
 }
