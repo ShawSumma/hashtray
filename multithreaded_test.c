@@ -31,7 +31,10 @@ struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
+// Maximum amount of time before we finish serving a connection and the arrival of a new one.
 #define MAX_SLEEP 10
+// Maximum amount of time that an adversary can stall a connection .
+#define MAX_STALL 10
 // FIXME #defined GOOD_VS_BAD_LIKELIHOOD
 
 struct sigaction sigact;
@@ -41,7 +44,8 @@ sig_handler (int signal) {
   static int attempt = 0;
   if (SIGINT == signal) {
     if (0 == attempt) {
-      fprintf(stderr, "Shutting down threads...\n");
+      fprintf(stderr, "Shutting down threads, this can take up to %d seconds. Please wait...\n",
+          MAX_SLEEP + MAX_STALL);
       for (int i = 0; i < NUM_SERVERS; i++) {
         server_info[i].shutdown = true;
       }
