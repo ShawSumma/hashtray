@@ -24,6 +24,9 @@ struct cell {
 
 struct table {
   struct cell cell[TABLE_SIZE];
+#ifdef MULTITHREADED
+  pthread_mutex_t lock[TABLE_SIZE];
+#endif // MULTITHREADED
 };
 
 #ifdef LOG_INSERTS
@@ -217,12 +220,20 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
 #endif // LOG_INSERTS
   for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      int table_idx = (int)is.idx[idx];
       if (t->cell[table_idx].entry[i].clear) {
         t->cell[table_idx].entry[i].clear = false;
         t->cell[table_idx].entry[i].key = fingerprint;
         t->cell[table_idx].entry[i].value = metadata;
+#ifdef MULTITHREADED
+        error = pthread_mutex_unlock(&(t->lock[table_idx]));
+        assert(!error);
+#endif // MULTITHREADED
         return OK;
       }
 #ifdef REMEMBER_COLLISIONS
@@ -246,16 +257,20 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       }
 #endif // REMEMBER_COLLISIONS
     }
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
   }
 #ifdef FAIL_EAGERLY
   return BLOCKS_FULL;
 #else
-  KEY_TYPE table_idx;
+  int table_idx;
 #ifdef LAME_KICK_SEQUENCE
   #define DEFAULT_IDX 0
-  table_idx = is.idx[DEFAULT_IDX];
+  table_idx = (int)is.idx[DEFAULT_IDX];
 #else
-  table_idx = is.idx[(int)prng() % CHOICES];
+  table_idx = (int)is.idx[(int)prng() % CHOICES];
 #endif
 
   int entry;
@@ -273,24 +288,36 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 
     // FIXME check for collision among the other entries (which might
     //       have been moved to an alternative bucket).
-    swapped_key = t->cell[(int)table_idx].entry[entry].key;
-    swapped_value = t->cell[(int)table_idx].entry[entry].value;
-    t->cell[(int)table_idx].entry[entry].key = fingerprint;
-    t->cell[(int)table_idx].entry[entry].value = metadata;
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
+    swapped_key = t->cell[table_idx].entry[entry].key;
+    swapped_value = t->cell[table_idx].entry[entry].value;
+    t->cell[table_idx].entry[entry].key = fingerprint;
+    t->cell[table_idx].entry[entry].value = metadata;
 
-    if (t->cell[(int)table_idx].entry[entry].clear) {
-      t->cell[(int)table_idx].entry[entry].clear = false;
+    if (t->cell[table_idx].entry[entry].clear) {
+      t->cell[table_idx].entry[entry].clear = false;
+#ifdef MULTITHREADED
+      error = pthread_mutex_unlock(&(t->lock[table_idx]));
+      assert(!error);
+#endif // MULTITHREADED
       return OK;
     }
 
     fingerprint = swapped_key;
     metadata = swapped_value;
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
    // NOTE in addition to exploring the alternative block we could also explore
    //      a fingerprint's "non-alternative" block for available entries --
    //      that is, pick some other fingerprint in the current block and
    //      attempt to kick it, rather than the current fingerprint; but it's
    //      not obvious which to pick, so the current approach feels simplest.
-    table_idx = alt_idx(table_idx, fingerprint);
+    table_idx = (int)alt_idx((KEY_TYPE)table_idx, fingerprint);
   }
 #ifdef REMEMBER_LOSS
   // Record which items got kicked out of the table.
@@ -312,14 +339,26 @@ delete(struct table * t, DATA_TYPE data)
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      int table_idx = (int)is.idx[idx];
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].clear = true;
+#ifdef MULTITHREADED
+        error = pthread_mutex_unlock(&(t->lock[table_idx]));
+        assert(!error);
+#endif // MULTITHREADED
         return OK;
       }
     }
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
   }
   return NOT_FOUND;
 }
@@ -330,14 +369,26 @@ lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      KEY_TYPE table_idx = is.idx[idx];
-      if (! t->cell[(int)table_idx].entry[i].clear &&
-          t->cell[(int)table_idx].entry[i].key == fingerprint) {
-        *metadata = t->cell[(int)table_idx].entry[i].value;
+      if (! t->cell[table_idx].entry[i].clear &&
+          t->cell[table_idx].entry[i].key == fingerprint) {
+        *metadata = t->cell[table_idx].entry[i].value;
+#ifdef MULTITHREADED
+        error = pthread_mutex_unlock(&(t->lock[table_idx]));
+        assert(!error);
+#endif // MULTITHREADED
         return OK;
       }
     }
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
   }
   return NOT_FOUND;
 }
@@ -346,10 +397,14 @@ struct table *
 create_table(void)
 {
   struct table * t = malloc(sizeof(*t));
-  for (int idx = 0; idx < TABLE_SIZE; idx++) {
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      t->cell[idx].entry[i].clear = true;
+      t->cell[table_idx].entry[i].clear = true;
     }
+#ifdef MULTITHREADED
+    int error = pthread_mutex_init(&(t->lock[table_idx]), NULL);
+    assert(!error);
+#endif // MULTITHREADED
   }
   return t;
 }
@@ -357,5 +412,11 @@ create_table(void)
 void
 destroy_table(struct table * t)
 {
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+#ifdef MULTITHREADED
+    int error = pthread_mutex_destroy(&(t->lock[table_idx]));
+    assert(!error);
+#endif // MULTITHREADED
+  }
   free(t);
 }
