@@ -119,7 +119,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 
   DATA_TYPE queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    uint32_t data;
+    uint32_t data; // FIXME DATA_TYPE rather than uint32_t?
 
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
@@ -147,8 +147,12 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
       if (OK == o) {
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
+          KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
+          printf("Unexpected result for data=%d (key=%d): expected %d but retrieved %d\n",
+              data, fingerprint, test_dataset[i].metadatum, queried_metadata);
 #ifdef REMEMBER_COLLISIONS
           assert(has_collided(data, queried_metadata));
+          printf("  Confirmed that this was due to collisions.\n");
 #endif // REMEMBER_COLLISIONS
         }
       } else if (NOT_FOUND == o) {
@@ -224,8 +228,9 @@ insert_test(struct table * test_table)
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
-  print_collision(false);
-  reset_collision();
+  print_collision(true);
+  // NOTE We should not reset collision, since this would invalidate
+  //      a future test for collisions.
 #endif // REMEMBER_COLLISIONS
 
   return result;

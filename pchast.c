@@ -105,21 +105,17 @@ reset_collision(void)
 
 bool
 has_collided(uint32_t data, DATA_TYPE queried_metadata) {
-  bool result = false;
-  if (collision_idx == 0) {
-    result = true; // FIXME doesn't seem right.
-  } else {
-    for (int idx = 0; idx < collision_idx; idx++) {
-      if (data == collision.entry[idx].key ||
-          data == collision.collided_with[idx].key) {
-        assert(queried_metadata == collision.entry[idx].value ||
-            queried_metadata == collision.collided_with[idx].value);
-        result = true;
-        break;
-      }
+  assert(collision_idx > 0);
+  KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
+  for (int idx = 0; idx < collision_idx; idx++) {
+    if (fingerprint == collision.entry[idx].key ||
+        fingerprint == collision.collided_with[idx].key) {
+      assert(queried_metadata == collision.entry[idx].value ||
+          queried_metadata == collision.collided_with[idx].value);
+      return true;
     }
   }
-  return result;
+  return false;
 }
 #endif // REMEMBER_COLLISIONS
 
