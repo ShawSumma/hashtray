@@ -60,7 +60,7 @@ reset_overfill(void)
 }
 
 bool
-has_overflowed(uint32_t data) {
+has_overflowed(DATA_TYPE data) {
   // Check if the item is in the "overflow" array.
   bool item_found = false;
   for (int idx = 0; idx < overfill_idx; idx++) {
@@ -104,7 +104,7 @@ reset_collision(void)
 }
 
 bool
-has_collided(uint32_t data, DATA_TYPE queried_metadata) {
+has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
   assert(collision_idx > 0);
   KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
   for (int idx = 0; idx < collision_idx; idx++) {

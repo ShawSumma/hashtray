@@ -84,7 +84,7 @@ extern struct overfill_t overfill;
 extern int overfill_idx;
 void print_overfill(bool);
 void reset_overfill(void);
-bool has_overflowed(uint32_t data);
+bool has_overflowed(DATA_TYPE data);
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
@@ -94,7 +94,7 @@ extern struct collision_t collision;
 extern int collision_idx;
 void print_collision(bool);
 void reset_collision(void);
-bool has_collided(uint32_t data, DATA_TYPE queried_metadata);
+bool has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata);
 #endif // REMEMBER_COLLISIONS
 
 #endif // PCHAST

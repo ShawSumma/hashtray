@@ -78,8 +78,8 @@ static inline uint64_t rdtscp(uint32_t * aux)
 
 #define TEST_DATASET_SIZE 500
 struct test_data {
-  uint32_t datum;
-  uint32_t metadatum;
+  DATA_TYPE datum;
+  VALUE_TYPE metadatum;
 };
 
 static inline void
@@ -119,12 +119,12 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 
   DATA_TYPE queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    uint32_t data; // FIXME DATA_TYPE rather than uint32_t?
+    DATA_TYPE data;
 
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = (uint32_t)RandomInt(0, INT_MAX);
+      data = (DATA_TYPE)RandomInt(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -196,8 +196,8 @@ insert_test(struct table * test_table)
   RESET_OUTCOME_STATS(oc)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (uint32_t)RandomInt(0, INT_MAX);
-    result[i].metadatum = (uint32_t)i;
+    result[i].datum = (DATA_TYPE)RandomInt(0, INT_MAX);
+    result[i].metadatum = (VALUE_TYPE)i;
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -277,8 +277,8 @@ mix_insert_lookup_test(void)
         assert(0);
     }
 
-    uint32_t data = (uint32_t)RandomInt(0, INT_MAX);
-    DATA_TYPE queried_metadata = (DATA_TYPE)RandomInt(0, INT_MAX);
+    DATA_TYPE data = (DATA_TYPE)RandomInt(0, INT_MAX);
+    VALUE_TYPE queried_metadata = (VALUE_TYPE)RandomInt(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
