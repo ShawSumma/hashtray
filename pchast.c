@@ -149,7 +149,7 @@ hash_of_KEY_TYPE(KEY_TYPE data)
 {
   KEY_TYPE hash = data;
 
-  // FIXME from http://www.azillionmonkeys.com/qed/hash.html
+  // NOTE from http://www.azillionmonkeys.com/qed/hash.html
   hash ^= hash << 3;
   hash += hash >> 5;
   hash ^= hash << 4;
