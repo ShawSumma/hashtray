@@ -147,6 +147,18 @@ prng(void)
   return (uint32_t)prng_state.u64;
 }
 
+int
+prng_int(int min, int max)
+{
+  int x;
+  while (true) {
+    x = (int)prng();
+    if (x >= min && x <= max) {
+      return x;
+    }
+  }
+}
+
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
 {

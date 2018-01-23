@@ -130,18 +130,18 @@ server_main(void * arg) {
 
   enum outcome o;
   while (! info->shutdown) {
-    sleep((uint32_t)RandomInt(0, MAX_SLEEP));
+    sleep((uint32_t)prng_int(0, MAX_SLEEP));
 
     DATA_TYPE host_id;
     bool host_is_nice = false;
     while (true) {
-      host_id = (DATA_TYPE)RandomInt(0, INT_MAX);
+      host_id = (DATA_TYPE)prng_int(0, INT_MAX);
 
       int hidx = host_idx(host_id);
       if (-1 == hidx) {
         if (num_hosts < NUM_HOSTS) {
           hidx = add_host(host_id);
-          int goodness = RandomInt(0, 100);
+          int goodness = prng_int(0, 100);
           host_is_nice = (goodness <= PERCENTAGE_GOOD_HOSTS);
           host_is_good(hidx, host_is_nice);
           break;
@@ -179,7 +179,7 @@ server_main(void * arg) {
 #endif
     if (!host_is_nice) {
       printf("-"); fflush(stdout);
-      sleep((uint32_t)RandomInt(0, MAX_STALL));
+      sleep((uint32_t)prng_int(0, MAX_STALL));
     } else {
       printf("+"); fflush(stdout);
     }
