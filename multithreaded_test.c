@@ -41,13 +41,13 @@ sig_handler (int signal) {
   static int attempt = 0;
   if (SIGINT == signal) {
     if (0 == attempt) {
-      printf("Shutting down threads...\n"); // FIXME stderr
+      fprintf(stderr, "Shutting down threads...\n");
       for (int i = 0; i < NUM_SERVERS; i++) {
         server_info[i].shutdown = true;
       }
       attempt += 1;
     } else {
-      printf("Cancelling threads...\n"); // FIXME stderr
+      fprintf(stderr, "Cancelling threads...\n");
       for (int i = 0; i < NUM_SERVERS; i++) {
         pthread_cancel(tid[i]);
       }
@@ -121,7 +121,7 @@ main()
     server_info[i].idx = (uint8_t)i;
     int error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
     if (error) {
-      printf("pthread_create: %s\n", strerror(error)); // FIXME output to stderr
+      fprintf(stderr, "pthread_create: %s\n", strerror(error));
       exit(1);
     }
   }
