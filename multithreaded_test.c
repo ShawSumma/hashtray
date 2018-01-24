@@ -26,6 +26,8 @@ struct server_info_t {
   int seed;
 
   uint32_t num_connections;
+  uint32_t num_connections_good;
+  uint32_t num_connections_bad;
   uint32_t tot_duration;
   uint32_t avg_duration;
 
@@ -41,11 +43,12 @@ pthread_t tid[NUM_SERVERS];
 
 static void
 print_server_info(void) {
-  printf("I\tSh\tSd\t\tNc\tTd\tAd\tHu\tHk\tCc\tCi\n");
+  printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\n");
   for (int i = 0; i < NUM_SERVERS; i++) {
-  printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+  printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
       server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
-      server_info[i].num_connections, server_info[i].tot_duration,
+      server_info[i].num_connections, server_info[i].num_connections_good,
+      server_info[i].num_connections_bad, server_info[i].tot_duration,
       server_info[i].avg_duration, server_info[i].host_unknown,
       server_info[i].host_known, server_info[i].host_classified_correct,
       server_info[i].host_classified_incorrect);
@@ -58,6 +61,9 @@ print_server_info(void) {
 #define NUM_HOSTS 100
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
+// The likelihood that a connection comes from a good host -- i.e., the lower
+// this value then the more determined is the adversary.
+#define PERCENTAGE_GOOD_CONNECTION 5
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 #define MAX_SLEEP 0
 // Bounds on the amount of time that an adversary can stall a connection.
@@ -162,12 +168,16 @@ pick_host(void) {
     idx = rand_range(0, NUM_HOSTS - 1);
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
-      if (host_info[idx].current_num_connections >= MAX_CONNS) {
-        error = pthread_mutex_unlock(&(host_info[idx].lock));
-        assert(!error);
-      } else {
-        break;
+      if (host_info[idx].current_num_connections < MAX_CONNS) {
+        bool conn_should_be_good = (rand_range(0, 100) < PERCENTAGE_GOOD_CONNECTION);
+        if ((conn_should_be_good && host_info[idx].is_good) ||
+            (!conn_should_be_good && !host_info[idx].is_good)) {
+          break;
+        }
       }
+
+      error = pthread_mutex_unlock(&(host_info[idx].lock));
+      assert(!error);
     }
   }
   return &(host_info[idx]);
@@ -232,6 +242,13 @@ server_main(void * arg) {
     unlock_host(hinfo);
 
     sinfo->num_connections += 1;
+
+    if (hinfo->is_good) {
+      sinfo->num_connections_good += 1;
+    } else {
+      sinfo->num_connections_bad += 1;
+    }
+    assert(sinfo->num_connections = sinfo->num_connections_good + sinfo->num_connections_bad);
 
     uint32_t delay = 0;
 
