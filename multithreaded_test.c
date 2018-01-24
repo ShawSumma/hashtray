@@ -58,19 +58,19 @@ print_server_info(void) {
 // Duration of the simulation in real time (seconds).
 #define SIM_DURATION 5
 // The number of distinct hosts on the network.
-#define NUM_HOSTS 100
+#define NUM_HOSTS 1000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 5
+#define PERCENTAGE_GOOD_CONNECTION 0
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 #define MAX_SLEEP 0
 // Bounds on the amount of time that an adversary can stall a connection.
 #define MIN_STALL 2
-#define MAX_STALL 10
+#define MAX_STALL 100
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
-#define MAX_CONNS 10
+#define MAX_CONNS 100
 // The quantity of units to be added to the average delay, to serve as a tolerance.
 // i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
 #define DELAY_TOLERANCE 1
