@@ -53,7 +53,7 @@ static void generate_hosts(void);
 static void shutdown_hosts(void);
 static void print_host_info(bool);
 
-static struct host_info_t * lock_host(VALUE_TYPE host_id);
+static void lock_host(struct host_info_t *);
 static void unlock_host(struct host_info_t *);
 
 static void
@@ -113,17 +113,10 @@ shutdown_hosts(void) {
   }
 }
 
-static struct host_info_t *
-lock_host(VALUE_TYPE host_id) {
-  // FIXME inefficient
-  for (int i = 0; i < NUM_HOSTS; i++) {
-    if (host_id == host_info[i].id) {
-      int error = pthread_mutex_lock(&(host_info[i].lock));
-      assert(!error);
-      return &(host_info[i]);
-    }
-  }
-  return NULL;
+static void
+lock_host(struct host_info_t * hinfo) {
+  int error = pthread_mutex_lock(&(hinfo->lock));
+  assert(!error);
 }
 
 static void
@@ -197,6 +190,7 @@ server_main(void * arg) {
     sleep((uint32_t)rand_range(0, MAX_SLEEP));
     struct host_info_t * hinfo = pick_host();
     hinfo->current_num_connections += 1;
+    unlock_host(hinfo);
 
 /*
     DATA_TYPE host_id;
@@ -262,6 +256,7 @@ server_main(void * arg) {
       }
     }
 
+    lock_host(hinfo);
     hinfo->current_num_connections -= 1;
     assert(hinfo->current_num_connections >= 0);
     unlock_host(hinfo);
