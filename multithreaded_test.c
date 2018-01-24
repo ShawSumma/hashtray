@@ -295,8 +295,9 @@ server_main(void * arg) {
       }
 
 #ifdef USE_PCHAST
+#ifndef USE_PERFECT_CLASSIFIER
       // We redefine "classification" based on observed time, rather than based on ground truth (hinfo->is_good).
-      if (delay > sinfo->avg_duration /*+ DELAY_TOLERANCE*/) {
+      if (delay > sinfo->avg_duration + DELAY_TOLERANCE) {
         classification = BAD_HOST;
         if (hinfo->is_good) {
           sinfo->host_classified_incorrect += 1;
@@ -307,6 +308,7 @@ server_main(void * arg) {
           sinfo->host_classified_correct += 1;
         }
       }
+#endif // USE_PERFECT_CLASSIFIER
 
       o = insert(tbl, hinfo->id, classification); // FIXME could time this.
 #endif // USE_PCHAST
