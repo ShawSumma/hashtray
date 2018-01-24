@@ -192,37 +192,6 @@ server_main(void * arg) {
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
 
-/*
-    DATA_TYPE host_id;
-    bool host_is_nice = false;
-    int tries = TRIES_TO_CREATE_NEW_HOST;
-    while (! info->shutdown) {
-      if (0 == tries) {
-        int hidx = rand_range(0, num_hosts - 1);
-        host_is_nice = is_host_good(hidx);
-        break;
-      }
-
-      host_id = (DATA_TYPE)rand_range(0, INT_MAX);
-
-      int hidx = host_idx(host_id);
-      if (-1 == hidx) {
-        if (num_hosts < NUM_HOSTS) {
-          hidx = add_host(host_id);
-          int goodness = rand_range(0, 100);
-          host_is_nice = (goodness <= PERCENTAGE_GOOD_HOSTS);
-          host_is_good(hidx, host_is_nice);
-          break;
-        } else {
-          // We don't add more hosts in the simulation if we've reached our limit.
-          continue;
-        }
-      } else {
-        host_is_nice = is_host_good(hidx);
-        break;
-      }
-    }
-*/
 #if 0
     VALUE_TYPE classification;
     o = lookup(tbl, host_id, &classification); // FIXME could time this.
