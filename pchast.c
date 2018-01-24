@@ -125,40 +125,6 @@ has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
 const char * outcome_str[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-static union {
-  uint64_t u64;
-  uint32_t u32[2];
-} prng_state;
-
-void
-init_prng(uint64_t seed)
-{
-  prng_state.u64 = seed;
-}
-
-uint32_t
-prng(void)
-{
-  // Based on the middle-square method.
-  prng_state.u64 *= 2 + prng_state.u64;
-  uint32_t temp = prng_state.u32[0];
-  prng_state.u32[0] = prng_state.u32[1] >> 16;
-  prng_state.u32[1] = temp << 16;
-  return (uint32_t)prng_state.u64;
-}
-
-int
-prng_int(int min, int max)
-{
-  int x;
-  while (true) {
-    x = (int)prng();
-    if (x >= min && x <= max) {
-      return x;
-    }
-  }
-}
-
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
 {
@@ -282,7 +248,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   #define DEFAULT_IDX 0
   table_idx = (int)is.idx[DEFAULT_IDX];
 #else
-  table_idx = (int)is.idx[(int)prng() % CHOICES];
+  table_idx = (int)is.idx[(int)rand() % CHOICES];
 #endif
 
   int entry;
@@ -295,7 +261,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   VALUE_TYPE swapped_value;
   for (int try = 0; try < MAX_KICKOUTS; try++) {
 #ifndef LAME_KICK_SEQUENCE
-    entry = (int)prng() % NUM_CELL_ENTRIES;
+    entry = (int)rand() % NUM_CELL_ENTRIES;
 #endif
 
     // FIXME check for collision among the other entries (which might
@@ -431,4 +397,16 @@ destroy_table(struct table * t)
 #endif // MULTITHREADED
   }
   free(t);
+}
+
+int
+rand_range(int min, int max)
+{
+  assert(max >= min);
+
+  if (min == max) {
+    return min;
+  }
+
+  return min + (rand() % (max - min));
 }

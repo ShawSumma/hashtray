@@ -32,10 +32,7 @@ struct entry;
 struct cell;
 struct table;
 
-#define PRNG_SEED 193852039
-void init_prng(uint64_t seed);
-uint32_t prng(void);
-int prng_int(int min, int max);
+int rand_range(int min, int max);
 
 char hash_of_uint32_to_char(uint32_t data);
 char hash_of_char_to_char(char data);

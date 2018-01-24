@@ -17,7 +17,6 @@ Nik Sultana, University of Pennsylvania, January 2018
 #include <unistd.h>
 
 #include "pchast.h"
-#include "randomlib.h"
 
 
 struct server_info_t {
@@ -40,9 +39,13 @@ pthread_t tid[NUM_SERVERS];
 // Maximum amount of time that an adversary can stall a connection .
 #define MAX_STALL 10
 
+// FIXME pregenerate this table
+// FIXME (un)lock at the host granularity when simulation connections from hosts.
+// FIXME can hosts make simultaneous connections to servers? How is this limited?
 static VALUE_TYPE host[NUM_HOSTS];
 static int num_hosts = 0;
 static bool good_host[NUM_HOSTS];
+static pthread_mutex_t host_lock[NUM_HOSTS]; // FIXME use this
 
 static int host_idx(VALUE_TYPE host_id);
 static int add_host(VALUE_TYPE host_id);
@@ -122,6 +125,7 @@ exit_handler(void) {
   sigemptyset(&sigact.sa_mask);
 }
 
+#define TRIES_TO_CREATE_NEW_HOST 50
 void *
 server_main(void * arg) {
   assert(MAX_SLEEP < INT_MAX);
@@ -130,18 +134,25 @@ server_main(void * arg) {
 
   enum outcome o;
   while (! info->shutdown) {
-    sleep((uint32_t)prng_int(0, MAX_SLEEP));
+    sleep((uint32_t)rand_range(0, MAX_SLEEP));
 
     DATA_TYPE host_id;
     bool host_is_nice = false;
-    while (true) {
-      host_id = (DATA_TYPE)prng_int(0, INT_MAX);
+    int tries = TRIES_TO_CREATE_NEW_HOST;
+    while (! info->shutdown) {
+      if (0 == tries) {
+        int hidx = rand_range(0, num_hosts - 1);
+        host_is_nice = is_host_good(hidx);
+        break;
+      }
+
+      host_id = (DATA_TYPE)rand_range(0, INT_MAX);
 
       int hidx = host_idx(host_id);
       if (-1 == hidx) {
         if (num_hosts < NUM_HOSTS) {
           hidx = add_host(host_id);
-          int goodness = prng_int(0, 100);
+          int goodness = rand_range(0, 100);
           host_is_nice = (goodness <= PERCENTAGE_GOOD_HOSTS);
           host_is_good(hidx, host_is_nice);
           break;
@@ -177,11 +188,14 @@ server_main(void * arg) {
       assert(0);
     }
 #endif
-    if (!host_is_nice) {
-      printf("-"); fflush(stdout);
-      sleep((uint32_t)prng_int(0, MAX_STALL));
-    } else {
-      printf("+"); fflush(stdout);
+
+    if (! info->shutdown) {
+      if (!host_is_nice) {
+        printf("-"); fflush(stdout);
+        sleep((uint32_t)rand_range(0, MAX_STALL));
+      } else {
+        printf("+"); fflush(stdout);
+      }
     }
   }
 
@@ -193,13 +207,12 @@ main()
 {
   atexit(exit_handler);
   init_signals();
-  init_prng(PRNG_SEED);
-  RandomInitialise(1802,9373); // These values were suggested in randomlib.c
+  srand(1802 * 9373);
 
   tbl = create_table();
 
   for (int i = 0; i < NUM_SERVERS; i++) {
-    server_info[i].seed = RandomInt(0, INT_MAX);
+    server_info[i].seed = rand_range(0, INT_MAX);
     server_info[i].shutdown = false;
     server_info[i].idx = (uint8_t)i;
     int error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));

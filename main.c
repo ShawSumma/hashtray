@@ -24,7 +24,6 @@ TODO
 #include <unistd.h>
 
 #include "pchast.h"
-#include "randomlib.h"
 
 #define TARGET_CORE 0/*FIXME const*/
 
@@ -124,7 +123,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = (DATA_TYPE)RandomInt(0, INT_MAX);
+      data = (DATA_TYPE)rand_range(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -196,7 +195,7 @@ insert_test(struct table * test_table)
   RESET_OUTCOME_STATS(oc)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (DATA_TYPE)RandomInt(0, INT_MAX);
+    result[i].datum = (DATA_TYPE)rand_range(0, INT_MAX);
     result[i].metadatum = (VALUE_TYPE)i;
 
 #if COOL_THE_CACHE
@@ -263,7 +262,7 @@ mix_insert_lookup_test(void)
   enum outcome o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    switch (RandomInt(INSERT, LOOKUP)) {
+    switch (rand_range(INSERT, LOOKUP)) {
       case 0:
         state = INSERT;
         break;
@@ -277,8 +276,8 @@ mix_insert_lookup_test(void)
         assert(0);
     }
 
-    DATA_TYPE data = (DATA_TYPE)RandomInt(0, INT_MAX);
-    VALUE_TYPE queried_metadata = (VALUE_TYPE)RandomInt(0, INT_MAX);
+    DATA_TYPE data = (DATA_TYPE)rand_range(0, INT_MAX);
+    VALUE_TYPE queried_metadata = (VALUE_TYPE)rand_range(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -350,14 +349,7 @@ mix_insert_lookup_test(void)
 int
 main()
 {
-  printf("Initialising PRNG\n");
-  init_prng(PRNG_SEED);
-#if 0
-  for (int i = 0; i < 10; i++) {
-    printf("%d\n", prng());
-  }
-#endif
-  RandomInitialise(1802,9373); // These values were suggested in randomlib.c
+  srand(1802 * 9373);
 
 #if 0
   // Pin to a single core
