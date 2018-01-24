@@ -192,9 +192,8 @@ server_main(void * arg) {
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
 
-#if 0
     VALUE_TYPE classification;
-    o = lookup(tbl, host_id, &classification); // FIXME could time this.
+    o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
     switch (o) {
     case OK:
       // FIXME could check for collision.
@@ -206,7 +205,7 @@ server_main(void * arg) {
       //       model according to the amount of host_id's controlled by the
       //       adversary, and our difficulty classifying them.
       // FIXME Compare this against not having the classification in place.
-      o = insert(tbl, host_id, classification); // FIXME could time this.
+      o = insert(tbl, hinfo->id, classification); // FIXME could time this.
 
       // FIXME could also model reclassification at some sampling rate, to
       //       make use of the "delete" feature of this data structure.
@@ -214,7 +213,6 @@ server_main(void * arg) {
     default:
       assert(0);
     }
-#endif
 
     if (! info->shutdown) {
       if (! hinfo->is_good) {
