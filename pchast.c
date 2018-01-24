@@ -408,5 +408,8 @@ rand_range(int min, int max)
     return min;
   }
 
+  assert(min >= 0);
+  assert(max > 0);
+
   return min + (rand() % (max - min));
 }
