@@ -110,13 +110,16 @@ print_host_info(bool detailed) {
   printf("good hosts=%d; bad hosts=%d\n", good, bad);
 }
 
+#define MAX_ITERATIONS 100
+
 static void
 generate_hosts(void) {
   int error;
   for (int i = 0; i < NUM_HOSTS; i++) {
 
     // Ensure the id is unique.
-    while (true) { // FIXME risk of infinite loop?
+    int iterations = MAX_ITERATIONS;
+    for (; iterations > 0; iterations--) {
       host_info[i].id = (VALUE_TYPE)rand_range(0, RAND_MAX);
       bool duplicate = false;
       for (int j = 0; j < i; j++) {
@@ -129,6 +132,7 @@ generate_hosts(void) {
         break;
       }
     }
+    assert(iterations > 0);
 
     host_info[i].current_num_connections = 0;
 
@@ -164,7 +168,8 @@ unlock_host(struct host_info_t * hinfo) {
 static struct host_info_t *
 pick_host(void) {
   int idx;
-  while (true) { // FIXME risk of infinite loop?
+  int iterations = MAX_ITERATIONS;
+  for (; iterations > 0; iterations--) {
     idx = rand_range(0, NUM_HOSTS - 1);
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
@@ -180,6 +185,7 @@ pick_host(void) {
       assert(!error);
     }
   }
+  assert(iterations > 0);
   return &(host_info[idx]);
 }
 
