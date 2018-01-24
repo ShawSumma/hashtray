@@ -215,10 +215,14 @@ server_main(void * arg) {
       if (! info->shutdown) {
         switch (classification) {
           case BAD_HOST:
+#ifdef SHOW_PROGRESS
             printf("!"); fflush(stdout);
+#endif // SHOW_PROGRESS
             break;
           case GOOD_HOST:
+#ifdef SHOW_PROGRESS
             printf("."); fflush(stdout);
+#endif // SHOW_PROGRESS
             break;
           default:
             assert(0);
@@ -238,11 +242,15 @@ server_main(void * arg) {
         // FIXME can make the simulator "blind" to "is_good" by only observing timings,
         //       and keeping a moving average.
         if (! hinfo->is_good) {
+#ifdef SHOW_PROGRESS
           printf("-"); fflush(stdout);
+#endif // SHOW_PROGRESS
           classification = BAD_HOST;
           delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
         } else {
+#ifdef SHOW_PROGRESS
           printf("+"); fflush(stdout);
+#endif // SHOW_PROGRESS
           classification = GOOD_HOST;
         }
       }
