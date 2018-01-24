@@ -38,56 +38,116 @@ pthread_t tid[NUM_SERVERS];
 #define MAX_SLEEP 0
 // Maximum amount of time that an adversary can stall a connection .
 #define MAX_STALL 10
+// Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
+#define MAX_CONNS 10
 
-// FIXME pregenerate this table
-// FIXME (un)lock at the host granularity when simulation connections from hosts.
-// FIXME can hosts make simultaneous connections to servers? How is this limited?
-static VALUE_TYPE host[NUM_HOSTS];
-static int num_hosts = 0;
-static bool good_host[NUM_HOSTS];
-static pthread_mutex_t host_lock[NUM_HOSTS]; // FIXME use this
+struct host_info_t {
+  VALUE_TYPE id;
+  bool is_good;
+  pthread_mutex_t lock;
+  uint8_t current_num_connections;
+};
+static struct host_info_t host_info[NUM_HOSTS];
 
-static int host_idx(VALUE_TYPE host_id);
-static int add_host(VALUE_TYPE host_id);
-static bool is_host_good(int host_idx);
-static void host_is_good(int host_idx, bool good);
-static void print_host_info(void);
+static void generate_hosts(void);
+static void shutdown_hosts(void);
+static void print_host_info(bool);
 
-static int
-host_idx(VALUE_TYPE host_id) {
-  // FIXME inefficient
-  for (int i = 0; i < num_hosts; i++) {
-    if (host_id == host[i]) {
-      return i;
+static struct host_info_t * lock_host(VALUE_TYPE host_id);
+static void unlock_host(struct host_info_t *);
+
+static void
+print_host_info(bool detailed) {
+  int good = 0;
+  int bad = 0;
+  for (int i = 0; i < NUM_HOSTS; i++) {
+    if (detailed) {
+      printf("%d : %d\n", host_info[i].id, host_info[i].is_good);
+    }
+
+    if (host_info[i].is_good) {
+      good += 1;
+    } else {
+      bad += 1;
     }
   }
-  return -1;
-}
-
-static int
-add_host(VALUE_TYPE host_id) {
-  // NOTE I'm assuming that the host hasn't already been added; I don't check for that.
-  assert(num_hosts < NUM_HOSTS);
-  host[num_hosts] = host_id;
-  num_hosts += 1;
-  return num_hosts - 1;
-}
-
-static bool is_host_good(int host_idx) {
-  assert(host_idx < num_hosts);
-  return good_host[host_idx];
+  printf("good hosts=%d; bad hosts=%d\n", good, bad);
 }
 
 static void
-host_is_good(int host_idx, bool good) {
-  good_host[host_idx] = good;
-}
+generate_hosts(void) {
+  int error;
+  for (int i = 0; i < NUM_HOSTS; i++) {
 
-static void
-print_host_info(void) {
-  for (int i = 0; i < num_hosts; i++) {
-    printf("%d : %d\n", host[i], good_host[i]);
+    // Ensure the id is unique.
+    while (true) { // FIXME risk of infinite loop?
+      host_info[i].id = (VALUE_TYPE)rand_range(0, RAND_MAX);
+      bool duplicate = false;
+      for (int j = 0; j < i; j++) {
+        if (host_info[i].id == host_info[j].id) {
+          duplicate = true;
+          break;
+        }
+      }
+      if (!duplicate) {
+        break;
+      }
+    }
+
+    host_info[i].current_num_connections = 0;
+
+    int goodness = rand_range(0, 100);
+    host_info[i].is_good = (goodness <= PERCENTAGE_GOOD_HOSTS);
+
+    error = pthread_mutex_init(&(host_info[i].lock), NULL);
+    assert(!error);
   }
+}
+
+static void
+shutdown_hosts(void) {
+  int error;
+  for (int i = 0; i < NUM_HOSTS; i++) {
+    error = pthread_mutex_destroy(&(host_info[i].lock));
+    assert(!error);
+  }
+}
+
+static struct host_info_t *
+lock_host(VALUE_TYPE host_id) {
+  // FIXME inefficient
+  for (int i = 0; i < NUM_HOSTS; i++) {
+    if (host_id == host_info[i].id) {
+      int error = pthread_mutex_lock(&(host_info[i].lock));
+      assert(!error);
+      return &(host_info[i]);
+    }
+  }
+  return NULL;
+}
+
+static void
+unlock_host(struct host_info_t * hinfo) {
+  int error = pthread_mutex_unlock(&(hinfo->lock));
+  assert(!error);
+}
+
+static struct host_info_t *
+pick_host(void) {
+  int idx;
+  while (true) { // FIXME risk of infinite loop?
+    idx = rand_range(0, NUM_HOSTS - 1);
+    int error = pthread_mutex_trylock(&(host_info[idx].lock));
+    if (! error) {
+      if (host_info[idx].current_num_connections >= MAX_CONNS) {
+        error = pthread_mutex_unlock(&(host_info[idx].lock));
+        assert(!error);
+      } else {
+        break;
+      }
+    }
+  }
+  return &(host_info[idx]);
 }
 
 struct sigaction sigact;
@@ -135,7 +195,10 @@ server_main(void * arg) {
   enum outcome o;
   while (! info->shutdown) {
     sleep((uint32_t)rand_range(0, MAX_SLEEP));
+    struct host_info_t * hinfo = pick_host();
+    hinfo->current_num_connections += 1;
 
+/*
     DATA_TYPE host_id;
     bool host_is_nice = false;
     int tries = TRIES_TO_CREATE_NEW_HOST;
@@ -165,6 +228,7 @@ server_main(void * arg) {
         break;
       }
     }
+*/
 #if 0
     VALUE_TYPE classification;
     o = lookup(tbl, host_id, &classification); // FIXME could time this.
@@ -190,13 +254,17 @@ server_main(void * arg) {
 #endif
 
     if (! info->shutdown) {
-      if (!host_is_nice) {
+      if (! hinfo->is_good) {
         printf("-"); fflush(stdout);
         sleep((uint32_t)rand_range(0, MAX_STALL));
       } else {
         printf("+"); fflush(stdout);
       }
     }
+
+    hinfo->current_num_connections -= 1;
+    assert(hinfo->current_num_connections >= 0);
+    unlock_host(hinfo);
   }
 
   return NULL;
@@ -208,6 +276,9 @@ main()
   atexit(exit_handler);
   init_signals();
   srand(1802 * 9373);
+
+  generate_hosts();
+  print_host_info(false);
 
   tbl = create_table();
 
@@ -228,6 +299,7 @@ main()
 
   destroy_table(tbl);
   // FIXME print output stats from server_info_t
+  shutdown_hosts();
 
   printf("done\n");
   return 0;
