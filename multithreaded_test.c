@@ -269,6 +269,7 @@ main()
   atexit(exit_handler);
   init_signals();
   srand(1802 * 9373);
+  // FIXME have a parameter to give the simulation a specific duration in seconds.
 
   generate_hosts();
   print_host_info(false);
