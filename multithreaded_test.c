@@ -240,7 +240,9 @@ server_main(void * arg) {
       assert(0);
     }
 
+#ifdef REALLY_SLEEP
     sleep(delay);
+#endif // REALLY_SLEEP
 
     lock_host(hinfo);
     hinfo->current_num_connections -= 1;
