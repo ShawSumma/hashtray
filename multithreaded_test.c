@@ -198,6 +198,16 @@ server_main(void * arg) {
     switch (o) {
     case OK:
       // FIXME could check for collision.
+
+      if (! info->shutdown) {
+        if (1/*FIXME const*/ == classification) {
+          printf("!"); fflush(stdout);
+        } else {
+          printf("."); fflush(stdout);
+        }
+        // FIXME otherwise assert(0);
+      }
+
       break;
     case NOT_FOUND:
       // FIXME could check for whether this was kicked out.
@@ -206,22 +216,26 @@ server_main(void * arg) {
       //       model according to the amount of host_id's controlled by the
       //       adversary, and our difficulty classifying them.
       // FIXME Compare this against not having the classification in place.
-      o = insert(tbl, hinfo->id, classification); // FIXME could time this.
 
+      if (! info->shutdown) {
+        // FIXME can make the simulator "blind" to "is_good" by only observing timings,
+        //       and keeping a moving average.
+        if (! hinfo->is_good) {
+          printf("-"); fflush(stdout);
+          classification = 1;
+          sleep((uint32_t)rand_range(MIN_STALL, MAX_STALL));
+        } else {
+          printf("+"); fflush(stdout);
+          classification = 0;
+        }
+      }
+
+      o = insert(tbl, hinfo->id, classification); // FIXME could time this.
       // FIXME could also model reclassification at some sampling rate, to
       //       make use of the "delete" feature of this data structure.
       break;
     default:
       assert(0);
-    }
-
-    if (! info->shutdown) {
-      if (! hinfo->is_good) {
-        printf("-"); fflush(stdout);
-        sleep((uint32_t)rand_range(MIN_STALL, MAX_STALL));
-      } else {
-        printf("+"); fflush(stdout);
-      }
     }
 
     lock_host(hinfo);
