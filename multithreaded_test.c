@@ -36,7 +36,8 @@ pthread_t tid[NUM_SERVERS];
 #define PERCENTAGE_GOOD_HOSTS 80
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 #define MAX_SLEEP 0
-// Maximum amount of time that an adversary can stall a connection .
+// Bounds on the amount of time that an adversary can stall a connection.
+#define MIN_STALL 2
 #define MAX_STALL 10
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
 #define MAX_CONNS 10
@@ -217,7 +218,7 @@ server_main(void * arg) {
     if (! info->shutdown) {
       if (! hinfo->is_good) {
         printf("-"); fflush(stdout);
-        sleep((uint32_t)rand_range(0, MAX_STALL));
+        sleep((uint32_t)rand_range(MIN_STALL, MAX_STALL));
       } else {
         printf("+"); fflush(stdout);
       }
