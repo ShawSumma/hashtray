@@ -18,17 +18,39 @@ Nik Sultana, University of Pennsylvania, January 2018
 
 #include "pchast.h"
 
+static void print_server_info(void);
 
 struct server_info_t {
   uint8_t idx;
   bool shutdown;
   int seed;
-  // FIXME include connection statistics
+
+  uint32_t num_connections;
+  uint32_t tot_duration;
+  uint32_t avg_duration;
+
+  uint32_t host_unknown;
+  uint32_t host_known;
+  uint32_t host_classified_correct; // FIXME currently unused
+  uint32_t host_classified_incorrect; // FIXME currently unused
 };
 #define NUM_SERVERS 10
 struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
+
+static void
+print_server_info(void) {
+  printf("I\tSh\tSd\t\tNc\tTd\tAd\tHu\tHk\tCc\tCi\n");
+  for (int i = 0; i < NUM_SERVERS; i++) {
+  printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+      server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
+      server_info[i].num_connections, server_info[i].tot_duration,
+      server_info[i].avg_duration, server_info[i].host_unknown,
+      server_info[i].host_known, server_info[i].host_classified_correct,
+      server_info[i].host_classified_incorrect);
+  }
+}
 
 // Duration of the simulation in real time (seconds).
 #define SIM_DURATION 5
@@ -194,15 +216,17 @@ exit_handler(void) {
 void *
 server_main(void * arg) {
   assert(MAX_SLEEP < INT_MAX);
-  struct server_info_t * info = (struct server_info_t *)arg;
-  printf("Server %d active\n", info->idx);
+  struct server_info_t * sinfo = (struct server_info_t *)arg;
+  printf("Server %d active\n", sinfo->idx);
 
   enum outcome o;
-  while (! info->shutdown) {
+  while (! sinfo->shutdown) {
     sleep((uint32_t)rand_range(0, MAX_SLEEP));
     struct host_info_t * hinfo = pick_host();
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
+
+    sinfo->num_connections += 1;
 
     uint32_t delay = 0;
 
@@ -212,7 +236,9 @@ server_main(void * arg) {
     case OK:
       // FIXME could check for collision.
 
-      if (! info->shutdown) {
+      sinfo->host_known += 1;
+
+      if (! sinfo->shutdown) {
         switch (classification) {
           case BAD_HOST:
 #ifdef SHOW_PROGRESS
@@ -231,6 +257,7 @@ server_main(void * arg) {
 
       break;
     case NOT_FOUND:
+      sinfo->host_unknown += 1;
       // FIXME could check for whether this was kicked out.
       // FIXME here could take the hit, to sleep according to whether host_id
       //       relates to good or bad. This would reduce the throughput of the
@@ -238,7 +265,7 @@ server_main(void * arg) {
       //       adversary, and our difficulty classifying them.
       // FIXME Compare this against not having the classification in place.
 
-      if (! info->shutdown) {
+      if (! sinfo->shutdown) {
         // FIXME can make the simulator "blind" to "is_good" by only observing timings,
         //       and keeping a moving average.
         if (! hinfo->is_good) {
@@ -263,6 +290,8 @@ server_main(void * arg) {
       assert(0);
     }
 
+    sinfo->tot_duration += delay;
+    sinfo->avg_duration = sinfo->tot_duration / sinfo->num_connections;
 #ifdef REALLY_SLEEP
     sleep(delay);
 #endif // REALLY_SLEEP
@@ -308,8 +337,9 @@ main()
   }
 
   destroy_table(tbl);
-  // FIXME print output stats from server_info_t
   shutdown_hosts();
+
+  print_server_info();
 
   printf("done\n");
   return 0;
