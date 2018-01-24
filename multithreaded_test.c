@@ -31,8 +31,8 @@ struct server_info_t {
 
   uint32_t host_unknown;
   uint32_t host_known;
-  uint32_t host_classified_correct; // FIXME currently unused
-  uint32_t host_classified_incorrect; // FIXME currently unused
+  uint32_t host_classified_correct;
+  uint32_t host_classified_incorrect;
 };
 #define NUM_SERVERS 10
 struct table * tbl = NULL;
@@ -65,6 +65,9 @@ print_server_info(void) {
 #define MAX_STALL 10
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
 #define MAX_CONNS 10
+// The quantity of units to be added to the average delay, to serve as a tolerance.
+// i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
+#define DELAY_TOLERANCE 1
 
 struct host_info_t {
   VALUE_TYPE id;
@@ -290,6 +293,19 @@ server_main(void * arg) {
       }
 
 #ifdef USE_PCHAST
+      // We redefine "classification" based on observed time, rather than based on ground truth (hinfo->is_good).
+      if (delay > sinfo->avg_duration /*+ DELAY_TOLERANCE*/) {
+        classification = BAD_HOST;
+        if (hinfo->is_good) {
+          sinfo->host_classified_incorrect += 1;
+        }
+      } else {
+        classification = GOOD_HOST;
+        if (hinfo->is_good) {
+          sinfo->host_classified_correct += 1;
+        }
+      }
+
       o = insert(tbl, hinfo->id, classification); // FIXME could time this.
 #endif // USE_PCHAST
       // FIXME could also model reclassification at some sampling rate, to
