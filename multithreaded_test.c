@@ -144,6 +144,10 @@ pick_host(void) {
   return &(host_info[idx]);
 }
 
+// The values used to classify hosts.
+#define GOOD_HOST 0
+#define BAD_HOST 1
+
 struct sigaction sigact;
 
 static void
@@ -202,12 +206,16 @@ server_main(void * arg) {
       // FIXME could check for collision.
 
       if (! info->shutdown) {
-        if (1/*FIXME const*/ == classification) {
-          printf("!"); fflush(stdout);
-        } else {
-          printf("."); fflush(stdout);
+        switch (classification) {
+          case BAD_HOST:
+            printf("!"); fflush(stdout);
+            break;
+          case GOOD_HOST:
+            printf("."); fflush(stdout);
+            break;
+          default:
+            assert(0);
         }
-        // FIXME otherwise assert(0);
       }
 
       break;
@@ -224,11 +232,11 @@ server_main(void * arg) {
         //       and keeping a moving average.
         if (! hinfo->is_good) {
           printf("-"); fflush(stdout);
-          classification = 1;
+          classification = BAD_HOST;
           delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
         } else {
           printf("+"); fflush(stdout);
-          classification = 0;
+          classification = GOOD_HOST;
         }
       }
 
@@ -256,6 +264,8 @@ server_main(void * arg) {
 int
 main()
 {
+  assert(GOOD_HOST != BAD_HOST);
+
   atexit(exit_handler);
   init_signals();
   srand(1802 * 9373);
