@@ -30,6 +30,8 @@ struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
+// Duration of the simulation in real time (seconds).
+#define SIM_DURATION 5
 // The number of distinct hosts on the network.
 #define NUM_HOSTS 100
 // The percentage of NUM_HOSTS that are "good".
@@ -153,7 +155,7 @@ struct sigaction sigact;
 static void
 sig_handler (int signal) {
   static int attempt = 0;
-  if (SIGINT == signal) {
+  if (SIGALRM == signal || SIGINT == signal) {
     if (0 == attempt) {
       fprintf(stderr, "Shutting down threads, this can take up to %d seconds. Please wait...\n",
           MAX_SLEEP + MAX_STALL);
@@ -175,7 +177,12 @@ init_signals(void) {
   sigact.sa_handler = &sig_handler;
   sigemptyset(&sigact.sa_mask);
   sigact.sa_flags = 0;
-  sigaction(SIGINT, &sigact, (struct sigaction *) NULL);
+  if (sigaction(SIGINT, &sigact, (struct sigaction *) NULL)) {
+    perror("Cannot handle SIGINT");
+  }
+  if (sigaction(SIGALRM, &sigact, (struct sigaction *) NULL)) {
+    perror("Cannot handle SIGALRM");
+  }
 }
 
 void
@@ -269,7 +276,8 @@ main()
   atexit(exit_handler);
   init_signals();
   srand(1802 * 9373);
-  // FIXME have a parameter to give the simulation a specific duration in seconds.
+
+  alarm(SIM_DURATION);
 
   generate_hosts();
   print_host_info(false);
