@@ -68,6 +68,8 @@ print_server_info(void) {
 // The quantity of units to be added to the average delay, to serve as a tolerance.
 // i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
 #define DELAY_TOLERANCE 1
+// FIXME could periodically change network conditions, so even good hosts appear bad,
+//       and require heeding a changing average.
 
 struct host_info_t {
   VALUE_TYPE id;
