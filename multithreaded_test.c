@@ -193,6 +193,8 @@ server_main(void * arg) {
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
 
+    uint32_t delay = 0;
+
     VALUE_TYPE classification;
     o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
     switch (o) {
@@ -223,7 +225,7 @@ server_main(void * arg) {
         if (! hinfo->is_good) {
           printf("-"); fflush(stdout);
           classification = 1;
-          sleep((uint32_t)rand_range(MIN_STALL, MAX_STALL));
+          delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
         } else {
           printf("+"); fflush(stdout);
           classification = 0;
@@ -237,6 +239,8 @@ server_main(void * arg) {
     default:
       assert(0);
     }
+
+    sleep(delay);
 
     lock_host(hinfo);
     hinfo->current_num_connections -= 1;
