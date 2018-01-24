@@ -230,8 +230,12 @@ server_main(void * arg) {
 
     uint32_t delay = 0;
 
-    VALUE_TYPE classification;
+    VALUE_TYPE classification = (VALUE_TYPE)(-1);
+#ifdef USE_PCHAST
     o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
+#else
+    o = NOT_FOUND;
+#endif // USE_PCHAST
     switch (o) {
     case OK:
       // FIXME could check for collision.
@@ -285,7 +289,9 @@ server_main(void * arg) {
         }
       }
 
+#ifdef USE_PCHAST
       o = insert(tbl, hinfo->id, classification); // FIXME could time this.
+#endif // USE_PCHAST
       // FIXME could also model reclassification at some sampling rate, to
       //       make use of the "delete" feature of this data structure.
       break;
