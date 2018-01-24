@@ -278,6 +278,9 @@ server_main(void * arg) {
 #ifdef SHOW_PROGRESS
           printf("+"); fflush(stdout);
 #endif // SHOW_PROGRESS
+#ifndef PERFECT_GOOD
+          delay = (uint32_t)rand_range(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
+#endif // PERFECT_GOOD
           classification = GOOD_HOST;
         }
       }
