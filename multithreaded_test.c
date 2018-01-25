@@ -111,7 +111,7 @@ print_server_info(void) {
   }
 
   // Worst duration possible: if every connection to every server produced the maximum amount of stall.
-  double max_stall = (double)total_num_connections * (double)MAX_STALL * (double)NUM_SERVERS;
+  double max_stall = (double)total_num_connections * (double)MAX_STALL;
   double relative_stall = (double)total_tot_duration / max_stall;
 
 #ifdef VERBOSE
