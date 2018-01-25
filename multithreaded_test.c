@@ -43,32 +43,57 @@ pthread_t tid[NUM_SERVERS];
 
 static void
 print_server_info(void) {
+  uint32_t total_num_connections = 0;
+  uint32_t total_num_connections_good = 0;
+  uint32_t total_num_connections_bad = 0;
+  uint32_t total_tot_duration = 0;
+  uint32_t average_duration = 0;
+
   printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\n");
   for (int i = 0; i < NUM_SERVERS; i++) {
-  printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
-      server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
-      server_info[i].num_connections, server_info[i].num_connections_good,
-      server_info[i].num_connections_bad, server_info[i].tot_duration,
-      server_info[i].avg_duration, server_info[i].host_unknown,
-      server_info[i].host_known, server_info[i].host_classified_correct,
-      server_info[i].host_classified_incorrect);
+    printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+        server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
+        server_info[i].num_connections, server_info[i].num_connections_good,
+        server_info[i].num_connections_bad, server_info[i].tot_duration,
+        server_info[i].avg_duration, server_info[i].host_unknown,
+        server_info[i].host_known, server_info[i].host_classified_correct,
+        server_info[i].host_classified_incorrect);
+
+    total_num_connections += server_info[i].num_connections;
+    total_num_connections_good += server_info[i].num_connections_good;
+    total_num_connections_bad += server_info[i].num_connections_bad;
+    total_tot_duration += server_info[i].tot_duration;
+    average_duration = total_tot_duration / total_num_connections;
   }
+
+  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%u\n",
+    total_num_connections,
+    total_num_connections_good,
+    total_num_connections_bad,
+    total_tot_duration,
+    average_duration);
 }
 
+// I define this to help us see the "hit" in the number of connections that can
+// be served when the system is under attack vs when it isn't (and when the
+// mitigation is in place vs when it isn't).
+#define REALLY_SLEEP
 // Duration of the simulation in real time (seconds).
-#define SIM_DURATION 5
+#define SIM_DURATION 15
 // The number of distinct hosts on the network.
 #define NUM_HOSTS 1000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 0
+#define PERCENTAGE_GOOD_CONNECTION 10
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
+// So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
+// are coming in all the time.
 #define MAX_SLEEP 0
 // Bounds on the amount of time that an adversary can stall a connection.
 #define MIN_STALL 2
-#define MAX_STALL 100
+#define MAX_STALL 5
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
 #define MAX_CONNS 100
 // The quantity of units to be added to the average delay, to serve as a tolerance.
@@ -110,6 +135,7 @@ print_host_info(bool detailed) {
   printf("good hosts=%d; bad hosts=%d\n", good, bad);
 }
 
+// Bound on loops.
 #define MAX_ITERATIONS 100
 
 static void
@@ -233,7 +259,6 @@ exit_handler(void) {
   sigemptyset(&sigact.sa_mask);
 }
 
-#define TRIES_TO_CREATE_NEW_HOST 50
 void *
 server_main(void * arg) {
   assert(MAX_SLEEP < INT_MAX);
