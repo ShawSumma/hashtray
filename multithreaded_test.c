@@ -28,14 +28,14 @@ static void print_server_info(void);
 // slows down the simulation.
 //#define REALLY_SLEEP
 // Duration of the simulation in real time (seconds).
-#define SIM_DURATION 15
+#define SIM_DURATION 5
 // The number of distinct hosts on the network.
 #define NUM_HOSTS 1000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 50
+#define PERCENTAGE_GOOD_CONNECTION 5
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 // So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
 // are coming in all the time.
@@ -86,8 +86,11 @@ print_server_info(void) {
   uint32_t total_tot_duration = 0;
   double average_duration = 0;
 
+#ifdef VERBOSE
   printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\n");
+#endif // VERBOSE
   for (int i = 0; i < NUM_SERVERS; i++) {
+#ifdef VERBOSE
     printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
         server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
         server_info[i].num_connections, server_info[i].num_connections_good,
@@ -95,6 +98,7 @@ print_server_info(void) {
         server_info[i].avg_duration, server_info[i].host_unknown,
         server_info[i].host_known, server_info[i].host_classified_correct,
         server_info[i].host_classified_incorrect);
+#endif // VERBOSE
 
     total_num_connections += server_info[i].num_connections;
     total_num_connections_good += server_info[i].num_connections_good;
@@ -103,12 +107,17 @@ print_server_info(void) {
     average_duration = (double)total_tot_duration / (double)total_num_connections;
   }
 
+#ifdef VERBOSE
   printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f\n",
     total_num_connections,
     total_num_connections_good,
     total_num_connections_bad,
     total_tot_duration,
     average_duration);
+#else
+  printf("%d %f\n", PERCENTAGE_GOOD_CONNECTION,
+      (double)total_tot_duration / (double)total_num_connections_bad);
+#endif // VERBOSE
 }
 
 struct host_info_t {
@@ -121,11 +130,14 @@ static struct host_info_t host_info[NUM_HOSTS];
 
 static void generate_hosts(void);
 static void shutdown_hosts(void);
+#ifdef VERBOSE
 static void print_host_info(bool);
+#endif // VERBOSE
 
 static void lock_host(struct host_info_t *);
 static void unlock_host(struct host_info_t *);
 
+#ifdef VERBOSE
 static void
 print_host_info(bool detailed) {
   int good = 0;
@@ -143,6 +155,7 @@ print_host_info(bool detailed) {
   }
   printf("good hosts=%d; bad hosts=%d\n", good, bad);
 }
+#endif // VERBOSE
 
 static void
 generate_hosts(void) {
@@ -265,7 +278,9 @@ void *
 server_main(void * arg) {
   assert(MAX_SLEEP < INT_MAX);
   struct server_info_t * sinfo = (struct server_info_t *)arg;
+#ifdef VERBOSE
   printf("Server %d active\n", sinfo->idx);
+#endif // VERBOSE
 
   enum outcome o;
   while (! sinfo->shutdown) {
@@ -396,7 +411,9 @@ main()
   alarm(SIM_DURATION);
 
   generate_hosts();
+#ifdef VERBOSE
   print_host_info(false);
+#endif // VERBOSE
 
   tbl = create_table();
 
@@ -420,6 +437,8 @@ main()
 
   print_server_info();
 
+#ifdef VERBOSE
   printf("done\n");
+#endif // VERBOSE
   return 0;
 }
