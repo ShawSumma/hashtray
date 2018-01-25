@@ -27,15 +27,18 @@ static void print_server_info(void);
 // mitigation is in place vs when it isn't). I don't normally use it since it
 // slows down the simulation.
 //#define REALLY_SLEEP
+// I defined PERFECT_GOOD otherwise the results are confusing when PERCENTAGE_GOOD_CONNECTION=100
+#define PERFECT_GOOD
 // Duration of the simulation in real time (seconds).
 #define SIM_DURATION 5
 // The number of distinct hosts on the network.
-#define NUM_HOSTS 1000
+#define NUM_HOSTS 50000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 5
+//#define PERCENTAGE_GOOD_CONNECTION 5
+int PERCENTAGE_GOOD_CONNECTION = -1;
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 // So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
 // are coming in all the time.
@@ -44,7 +47,7 @@ static void print_server_info(void);
 #define MIN_STALL 2
 #define MAX_STALL 5
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
-#define MAX_CONNS 100
+#define MAX_CONNS 1
 // The quantity of units to be added to the average delay, to serve as a tolerance.
 // i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
 #define DELAY_TOLERANCE 1
@@ -52,7 +55,7 @@ static void print_server_info(void);
 //       and require heeding a changing average.
 
 // Bound on loops.
-#define MAX_ITERATIONS 100
+#define MAX_ITERATIONS 500
 
 // The values used to classify hosts.
 #define GOOD_HOST 0
@@ -115,8 +118,7 @@ print_server_info(void) {
     total_tot_duration,
     average_duration);
 #else
-  printf("%d %f\n", PERCENTAGE_GOOD_CONNECTION,
-      (double)total_tot_duration / (double)total_num_connections_bad);
+  printf("%d %u\n", PERCENTAGE_GOOD_CONNECTION, total_tot_duration);
 #endif // VERBOSE
 }
 
@@ -219,9 +221,8 @@ pick_host(void) {
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
       if (host_info[idx].current_num_connections < MAX_CONNS) {
-        bool conn_should_be_good = (rand_range(0, 100) < PERCENTAGE_GOOD_CONNECTION);
-        if ((conn_should_be_good && host_info[idx].is_good) ||
-            (!conn_should_be_good && !host_info[idx].is_good)) {
+        bool conn_should_be_good = (rand_range(0, 100) <= PERCENTAGE_GOOD_CONNECTION);
+        if (conn_should_be_good == host_info[idx].is_good) {
           break;
         }
       }
@@ -400,9 +401,12 @@ server_main(void * arg) {
 }
 
 int
-main()
+main(int argc, char * argv[])
 {
   assert(GOOD_HOST != BAD_HOST);
+
+  assert(2 == argc);
+  PERCENTAGE_GOOD_CONNECTION = (int)strtol(argv[1], (char **)NULL, 10);
 
   atexit(exit_handler);
   init_signals();
