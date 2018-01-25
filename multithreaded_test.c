@@ -110,15 +110,21 @@ print_server_info(void) {
     average_duration = (double)total_tot_duration / (double)total_num_connections;
   }
 
+  // Worst duration possible: if every connection to every server produced the maximum amount of stall.
+  double max_stall = (double)total_num_connections * (double)MAX_STALL * (double)NUM_SERVERS;
+  double relative_stall = (double)total_tot_duration / max_stall;
+
 #ifdef VERBOSE
-  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f\n",
+  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f, max_stall=%f, relative_stall=%f\n",
     total_num_connections,
     total_num_connections_good,
     total_num_connections_bad,
     total_tot_duration,
-    average_duration);
+    average_duration,
+    max_stall,
+    relative_stall);
 #else
-  printf("%d %u\n", PERCENTAGE_GOOD_CONNECTION, total_tot_duration);
+  printf("%d %f\n", PERCENTAGE_GOOD_CONNECTION, relative_stall);
 #endif // VERBOSE
 }
 
