@@ -189,7 +189,7 @@ generate_hosts(void) {
 
     host_info[i].current_num_connections = 0;
 
-    int goodness = rand_range(0, 100);
+    int goodness = rand_range(1, 100);
     host_info[i].is_good = (goodness <= PERCENTAGE_GOOD_HOSTS);
 
     error = pthread_mutex_init(&(host_info[i].lock), NULL);
@@ -227,7 +227,7 @@ pick_host(void) {
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
       if (host_info[idx].current_num_connections < MAX_CONNS) {
-        bool conn_should_be_good = (rand_range(0, 100) <= PERCENTAGE_GOOD_CONNECTION);
+        bool conn_should_be_good = (rand_range(1, 100) <= PERCENTAGE_GOOD_CONNECTION);
         if (conn_should_be_good == host_info[idx].is_good) {
           break;
         }
