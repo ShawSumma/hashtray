@@ -2,6 +2,10 @@
 Partial-key cuckoo hash.
 (aka A cuckoo filter with a value associated with each fingerprint)
 Nik Sultana, University of Pennsylvania, November 2017
+
+NOTE: this code is thread-safe in "regular mode", but the debug
+      mode (-DREMEMBER_LOSS -DREMEMBER_COLLISIONS) hasn't been tuned for
+      thread-safety.
 */
 
 
