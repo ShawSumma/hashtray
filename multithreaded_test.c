@@ -20,6 +20,44 @@ Nik Sultana, University of Pennsylvania, January 2018
 
 static void print_server_info(void);
 
+// Number of servers in the simulation. These will accept connections concurrently.
+#define NUM_SERVERS 10
+// I define this to help us see the "hit" in the number of connections that can
+// be served when the system is under attack vs when it isn't (and when the
+// mitigation is in place vs when it isn't). I don't normally use it since it
+// slows down the simulation.
+//#define REALLY_SLEEP
+// Duration of the simulation in real time (seconds).
+#define SIM_DURATION 15
+// The number of distinct hosts on the network.
+#define NUM_HOSTS 1000
+// The percentage of NUM_HOSTS that are "good".
+#define PERCENTAGE_GOOD_HOSTS 80
+// The likelihood that a connection comes from a good host -- i.e., the lower
+// this value then the more determined is the adversary.
+#define PERCENTAGE_GOOD_CONNECTION 50
+// Maximum amount of time before we finish serving a connection and the arrival of a new one.
+// So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
+// are coming in all the time.
+#define MAX_SLEEP 0
+// Bounds on the amount of time that an adversary can stall a connection.
+#define MIN_STALL 2
+#define MAX_STALL 5
+// Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
+#define MAX_CONNS 100
+// The quantity of units to be added to the average delay, to serve as a tolerance.
+// i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
+#define DELAY_TOLERANCE 1
+// FIXME could periodically change network conditions, so even good hosts appear bad,
+//       and require heeding a changing average.
+
+// Bound on loops.
+#define MAX_ITERATIONS 100
+
+// The values used to classify hosts.
+#define GOOD_HOST 0
+#define BAD_HOST 1
+
 struct server_info_t {
   uint8_t idx;
   bool shutdown;
@@ -36,7 +74,6 @@ struct server_info_t {
   uint32_t host_classified_correct;
   uint32_t host_classified_incorrect;
 };
-#define NUM_SERVERS 10
 struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
@@ -66,45 +103,13 @@ print_server_info(void) {
     average_duration = (double)total_tot_duration / (double)total_num_connections;
   }
 
-  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f, impact=%f\n",
+  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f\n",
     total_num_connections,
     total_num_connections_good,
     total_num_connections_bad,
     total_tot_duration,
-    average_duration,
-    /*FIXME crude: 1 - average_duration*/
-//    (((double)total_tot_duration / (double)NUM_SERVERS) / 15.0/*FIXME duration*/) / (double)total_num_connections_bad);
-    (double)total_tot_duration / 15.0/*FIXME sim duration*/);
+    average_duration);
 }
-
-// I define this to help us see the "hit" in the number of connections that can
-// be served when the system is under attack vs when it isn't (and when the
-// mitigation is in place vs when it isn't). I don't normally use it since it
-// slows down the simulation.
-//#define REALLY_SLEEP
-// Duration of the simulation in real time (seconds).
-#define SIM_DURATION 15
-// The number of distinct hosts on the network.
-#define NUM_HOSTS 1000
-// The percentage of NUM_HOSTS that are "good".
-#define PERCENTAGE_GOOD_HOSTS 80
-// The likelihood that a connection comes from a good host -- i.e., the lower
-// this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 50
-// Maximum amount of time before we finish serving a connection and the arrival of a new one.
-// So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
-// are coming in all the time.
-#define MAX_SLEEP 0
-// Bounds on the amount of time that an adversary can stall a connection.
-#define MIN_STALL 2
-#define MAX_STALL 5
-// Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
-#define MAX_CONNS 100
-// The quantity of units to be added to the average delay, to serve as a tolerance.
-// i.e, anything above avg_duration + DELAY_TOLERANCE is classified as bad.
-#define DELAY_TOLERANCE 1
-// FIXME could periodically change network conditions, so even good hosts appear bad,
-//       and require heeding a changing average.
 
 struct host_info_t {
   VALUE_TYPE id;
@@ -138,9 +143,6 @@ print_host_info(bool detailed) {
   }
   printf("good hosts=%d; bad hosts=%d\n", good, bad);
 }
-
-// Bound on loops.
-#define MAX_ITERATIONS 100
 
 static void
 generate_hosts(void) {
@@ -218,10 +220,6 @@ pick_host(void) {
   assert(iterations > 0);
   return &(host_info[idx]);
 }
-
-// The values used to classify hosts.
-#define GOOD_HOST 0
-#define BAD_HOST 1
 
 struct sigaction sigact;
 
