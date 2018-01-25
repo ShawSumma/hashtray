@@ -248,11 +248,13 @@ sig_handler (int signal) {
         server_info[i].shutdown = true;
       }
       attempt += 1;
+      alarm(SIM_DURATION); // Wait further before cancelling.
     } else {
       fprintf(stderr, "Cancelling threads...\n");
       for (int i = 0; i < NUM_SERVERS; i++) {
         pthread_cancel(tid[i]);
       }
+      alarm(SIM_DURATION); // Keep trying to cancel.
     }
   }
 }
@@ -282,6 +284,10 @@ server_main(void * arg) {
 #ifdef VERBOSE
   printf("Server %d active\n", sinfo->idx);
 #endif // VERBOSE
+
+  int ignored;
+  pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &ignored);
+  pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &ignored);
 
   enum outcome o;
   while (! sinfo->shutdown) {
