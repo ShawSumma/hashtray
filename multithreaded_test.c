@@ -47,7 +47,7 @@ print_server_info(void) {
   uint32_t total_num_connections_good = 0;
   uint32_t total_num_connections_bad = 0;
   uint32_t total_tot_duration = 0;
-  uint32_t average_duration = 0;
+  double average_duration = 0;
 
   printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\n");
   for (int i = 0; i < NUM_SERVERS; i++) {
@@ -63,21 +63,25 @@ print_server_info(void) {
     total_num_connections_good += server_info[i].num_connections_good;
     total_num_connections_bad += server_info[i].num_connections_bad;
     total_tot_duration += server_info[i].tot_duration;
-    average_duration = total_tot_duration / total_num_connections;
+    average_duration = (double)total_tot_duration / (double)total_num_connections;
   }
 
-  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%u\n",
+  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f, impact=%f\n",
     total_num_connections,
     total_num_connections_good,
     total_num_connections_bad,
     total_tot_duration,
-    average_duration);
+    average_duration,
+    /*FIXME crude: 1 - average_duration*/
+//    (((double)total_tot_duration / (double)NUM_SERVERS) / 15.0/*FIXME duration*/) / (double)total_num_connections_bad);
+    (double)total_tot_duration / 15.0/*FIXME sim duration*/);
 }
 
 // I define this to help us see the "hit" in the number of connections that can
 // be served when the system is under attack vs when it isn't (and when the
-// mitigation is in place vs when it isn't).
-#define REALLY_SLEEP
+// mitigation is in place vs when it isn't). I don't normally use it since it
+// slows down the simulation.
+//#define REALLY_SLEEP
 // Duration of the simulation in real time (seconds).
 #define SIM_DURATION 15
 // The number of distinct hosts on the network.
@@ -86,7 +90,7 @@ print_server_info(void) {
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-#define PERCENTAGE_GOOD_CONNECTION 10
+#define PERCENTAGE_GOOD_CONNECTION 50
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 // So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
 // are coming in all the time.
