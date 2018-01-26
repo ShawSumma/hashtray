@@ -450,9 +450,14 @@ main(int argc, char * argv[])
 {
   assert(GOOD_HOST != BAD_HOST);
 
+  bool dump_parameters = false;
+
   int choice;
-  while ((choice = getopt(argc, argv, "g:h:n:u:v:")) != -1) {
+  while ((choice = getopt(argc, argv, "dg:h:n:u:v:")) != -1) {
     switch (choice) {
+    case 'd':
+      dump_parameters = true;
+      break;
     case 'g':
       PERCENTAGE_GOOD_CONNECTION = (int)strtol(optarg, (char **)NULL, 10);
       break;
@@ -486,6 +491,64 @@ main(int argc, char * argv[])
   }
 
   assert(MIN_STALL <= MAX_STALL);
+
+  if (dump_parameters) {
+#ifdef REALLY_SLEEP
+    printf("REALLY_SLEEP=yes\n");
+#else
+    printf("REALLY_SLEEP=no\n");
+#endif // REALLY_SLEEP
+#ifdef SHOW_PROGRESS
+    printf("SHOW_PROGRESS=yes\n");
+#else
+    printf("SHOW_PROGRESS=no\n");
+#endif // SHOW_PROGRESS
+#ifdef USE_PCHAST
+    printf("USE_PCHAST=yes\n");
+#else
+    printf("USE_PCHAST=no\n");
+#endif // USE_PCHAST
+#ifdef VERBOSE
+    printf("VERBOSE=yes\n");
+#else
+    printf("VERBOSE=no\n");
+#endif // VERBOSE
+#ifdef PERFECT_GOOD
+    printf("PERFECT_GOOD=yes\n");
+#else
+    printf("PERFECT_GOOD=no\n");
+#endif // PERFECT_GOOD
+#ifdef USE_PERFECT_CLASSIFIER
+    printf("USE_PERFECT_CLASSIFIER=yes\n");
+#else
+    printf("USE_PERFECT_CLASSIFIER=no\n");
+#endif // USE_PERFECT_CLASSIFIER
+#ifdef SIM_DURATION_IN_SECONDS
+    printf("SIM_DURATION_IN_SECONDS=yes\n");
+#else
+    printf("SIM_DURATION_IN_SECONDS=no\n");
+#endif // SIM_DURATION_IN_SECONDS
+#ifdef SIM_DURATION_IN_CONNECTIONS
+    printf("SIM_DURATION_IN_CONNECTIONS=yes\n");
+#else
+    printf("SIM_DURATION_IN_CONNECTIONS=no\n");
+#endif // SIM_DURATION_IN_CONNECTIONS
+
+    printf("NUM_SERVERS=%d\n", NUM_SERVERS);
+    printf("SIM_DURATION_SECS=%d\n", SIM_DURATION_SECS);
+    printf("SIM_DURATION_CONNS=%d\n", SIM_DURATION_CONNS);
+    printf("MAX_NUM_HOSTS=%d\n", MAX_NUM_HOSTS);
+    printf("NUM_HOSTS=%d\n", NUM_HOSTS);
+    printf("PERCENTAGE_GOOD_HOSTS=%d\n", PERCENTAGE_GOOD_HOSTS);
+    printf("PERCENTAGE_GOOD_CONNECTION=%d\n", PERCENTAGE_GOOD_CONNECTION);
+    printf("MAX_SLEEP=%d\n", MAX_SLEEP);
+    printf("MIN_STALL=%d\n", MIN_STALL);
+    printf("MAX_STALL=%d\n", MAX_STALL);
+    printf("MAX_CONNS=%d\n", MAX_CONNS);
+    printf("DELAY_TOLERANCE=%d\n", DELAY_TOLERANCE);
+    printf("MAX_ITERATIONS=%d\n", MAX_ITERATIONS);
+    exit(0);
+  }
 
   atexit(exit_handler);
   init_signals();
