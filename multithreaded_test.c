@@ -6,8 +6,8 @@ Nik Sultana, University of Pennsylvania, January 2018
 #define _GNU_SOURCE
 #include <assert.h>
 #include <errno.h>
-#include <pthread.h>
 #include <limits.h>
+#include <pthread.h>
 #include <sched.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -41,8 +41,7 @@ static void print_server_info(void);
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
-//#define PERCENTAGE_GOOD_CONNECTION 5
-int PERCENTAGE_GOOD_CONNECTION = -1;
+int PERCENTAGE_GOOD_CONNECTION = 5;
 // Maximum amount of time before we finish serving a connection and the arrival of a new one.
 // So MAX_SLEEP==0 means we're modelling a very demanding environment where connections
 // are coming in all the time.
@@ -448,8 +447,27 @@ main(int argc, char * argv[])
 {
   assert(GOOD_HOST != BAD_HOST);
 
-  assert(2 == argc);
-  PERCENTAGE_GOOD_CONNECTION = (int)strtol(argv[1], (char **)NULL, 10);
+  int choice;
+  while ((choice = getopt(argc, argv, "g:")) != -1) {
+    switch (choice) {
+    case 'g':
+      PERCENTAGE_GOOD_CONNECTION = (int)strtol(optarg, (char **)NULL, 10);
+      break;
+    default:
+      fprintf(stderr, "Unrecognised option: %c\n", choice);
+      exit(2);
+    }
+  }
+
+  if (optind < argc) {
+    fprintf(stderr, "Unrecognised options: ");
+    while (optind < argc) {
+      fprintf(stderr, "%s ", argv[optind]);
+      optind += 1;
+    }
+    fprintf(stderr, "\n");
+    exit(2);
+  }
 
   atexit(exit_handler);
   init_signals();
