@@ -83,6 +83,7 @@ struct server_info_t {
   uint8_t idx;
   bool shutdown;
   int seed;
+  bool fault;
 
   uint32_t num_connections;
   uint32_t num_connections_good;
@@ -112,12 +113,14 @@ print_server_info(void) {
   uint32_t total_tot_duration = 0;
   double average_duration = 0;
 
+  bool fault_occurred = false;
+
 #ifdef VERBOSE
-  printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\n");
+  printf("I\tSh\tSd\t\tNc\tNg\tNb\tTd\tAd\tHu\tHk\tCc\tCi\tF\n");
 #endif // VERBOSE
   for (int i = 0; i < NUM_SERVERS; i++) {
 #ifdef VERBOSE
-    printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
+    printf("%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\n",
         server_info[i].idx, server_info[i].shutdown, server_info[i].seed,
         server_info[i].num_connections, server_info[i].num_connections_good,
         server_info[i].num_connections_bad, server_info[i].tot_duration,
@@ -125,6 +128,8 @@ print_server_info(void) {
         server_info[i].host_known, server_info[i].host_classified_correct,
         server_info[i].host_classified_incorrect);
 #endif // VERBOSE
+
+    fault_occurred |= server_info[i].fault;
 
     total_num_connections += server_info[i].num_connections;
     total_num_connections_good += server_info[i].num_connections_good;
@@ -138,16 +143,21 @@ print_server_info(void) {
   double relative_stall = (double)total_tot_duration / max_stall;
 
 #ifdef VERBOSE
-  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f, max_stall=%f, relative_stall=%f\n",
+  printf("total_num_connections=%u, total_num_connections_good=%u, total_num_connections_bad=%u, total_tot_duration=%u, average_duration=%f, max_stall=%f, relative_stall=%f, fault_occurred=%d\n",
     total_num_connections,
     total_num_connections_good,
     total_num_connections_bad,
     total_tot_duration,
     average_duration,
     max_stall,
-    relative_stall);
+    relative_stall,
+    fault_occurred);
 #else
-  printf("%d %f\n", PERCENTAGE_GOOD_CONNECTION, relative_stall);
+  if (!fault_occurred) {
+    printf("%d %f\n", PERCENTAGE_GOOD_CONNECTION, relative_stall);
+  } else {
+    printf("%d nan\n", PERCENTAGE_GOOD_CONNECTION);
+  }
 #endif // VERBOSE
 }
 
@@ -243,6 +253,13 @@ unlock_host(struct host_info_t * hinfo) {
 
 static struct host_info_t *
 pick_host(void) {
+
+  if ((100 == PERCENTAGE_GOOD_CONNECTION && 0 == PERCENTAGE_GOOD_HOSTS) ||
+      (100 == PERCENTAGE_GOOD_HOSTS && 0 == PERCENTAGE_GOOD_CONNECTION)) {
+    // There's no way of picking a host that satisfies this requenst.
+    return NULL;
+  }
+
   int idx;
   int iterations = MAX_ITERATIONS;
   for (; iterations > 0; iterations--) {
@@ -338,6 +355,11 @@ server_main(void * arg) {
 #endif // SIM_DURATION_IN_CONNECTIONS
 
     struct host_info_t * hinfo = pick_host();
+    if (NULL == hinfo) {
+      // We cannot continue the simulation if a host cannot be found.
+      sinfo->fault = true;
+      break;
+    }
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
 
