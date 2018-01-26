@@ -20,6 +20,7 @@ Nik Sultana, University of Pennsylvania, January 2018
 
 static void print_server_info(void);
 
+bool USE_PCHAST = false;
 // Number of servers in the simulation. These will accept connections concurrently.
 #define NUM_SERVERS 10
 // I define this to help us see the "hit" in the number of connections that can
@@ -352,11 +353,12 @@ server_main(void * arg) {
     uint32_t delay = 0;
 
     VALUE_TYPE classification = (VALUE_TYPE)(-1);
-#ifdef USE_PCHAST
-    o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
-#else
-    o = NOT_FOUND;
-#endif // USE_PCHAST
+    if (USE_PCHAST) {
+      o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
+    } else {
+      o = NOT_FOUND;
+    }
+
     switch (o) {
     case OK:
       // FIXME could check for collision.
@@ -410,24 +412,25 @@ server_main(void * arg) {
         }
       }
 
-#ifdef USE_PCHAST
+      if (USE_PCHAST) {
 #ifndef USE_PERFECT_CLASSIFIER
-      // We redefine "classification" based on observed time, rather than based on ground truth (hinfo->is_good).
-      if (delay > sinfo->avg_duration + DELAY_TOLERANCE) {
-        classification = BAD_HOST;
-        if (hinfo->is_good) {
-          sinfo->host_classified_incorrect += 1;
+        // We redefine "classification" based on observed time, rather than based on ground truth (hinfo->is_good).
+        if (delay > sinfo->avg_duration + DELAY_TOLERANCE) {
+          classification = BAD_HOST;
+          if (hinfo->is_good) {
+            sinfo->host_classified_incorrect += 1;
+          }
+        } else {
+          classification = GOOD_HOST;
+          if (hinfo->is_good) {
+            sinfo->host_classified_correct += 1;
+          }
         }
-      } else {
-        classification = GOOD_HOST;
-        if (hinfo->is_good) {
-          sinfo->host_classified_correct += 1;
-        }
-      }
 #endif // USE_PERFECT_CLASSIFIER
 
-      o = insert(tbl, hinfo->id, classification); // FIXME could time this.
-#endif // USE_PCHAST
+        o = insert(tbl, hinfo->id, classification); // FIXME could time this.
+      }
+
       // FIXME could also model reclassification at some sampling rate, to
       //       make use of the "delete" feature of this data structure.
       break;
@@ -457,7 +460,7 @@ main(int argc, char * argv[])
 
   int choice;
   // FIXME show "usage" when no parameters provided? Since "-h" is already taken.
-  while ((choice = getopt(argc, argv, "dg:h:n:u:v:")) != -1) {
+  while ((choice = getopt(argc, argv, "dg:h:n:pu:v:")) != -1) {
     switch (choice) {
     case 'd':
       dump_parameters = true;
@@ -471,6 +474,9 @@ main(int argc, char * argv[])
     case 'n':
       NUM_HOSTS = (int)strtol(optarg, (char **)NULL, 10);
       assert(NUM_HOSTS <= MAX_NUM_HOSTS);
+      break;
+    case 'p':
+      USE_PCHAST = true;
       break;
     case 'u':
       MIN_STALL = (int)strtol(optarg, (char **)NULL, 10);
@@ -507,11 +513,6 @@ main(int argc, char * argv[])
 #else
     printf("SHOW_PROGRESS=no\n");
 #endif // SHOW_PROGRESS
-#ifdef USE_PCHAST
-    printf("USE_PCHAST=yes\n");
-#else
-    printf("USE_PCHAST=no\n");
-#endif // USE_PCHAST
 #ifdef VERBOSE
     printf("VERBOSE=yes\n");
 #else
@@ -538,6 +539,7 @@ main(int argc, char * argv[])
     printf("SIM_DURATION_IN_CONNECTIONS=no\n");
 #endif // SIM_DURATION_IN_CONNECTIONS
 
+    printf("USE_PCHAST=%d\n", USE_PCHAST);
     printf("NUM_SERVERS=%d\n", NUM_SERVERS);
     printf("SIM_DURATION_SECS=%d\n", SIM_DURATION_SECS);
     printf("SIM_DURATION_CONNS=%d\n", SIM_DURATION_CONNS);
