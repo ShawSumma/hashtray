@@ -30,8 +30,12 @@ static void print_server_info(void);
 // I defined PERFECT_GOOD otherwise the results are confusing when PERCENTAGE_GOOD_CONNECTION=100
 #define PERFECT_GOOD
 // Duration of the simulation in real time (seconds).
-#define SIM_DURATION 5
+#define SIM_DURATION_SECS 5
 // The number of distinct hosts on the network.
+#undef SIM_DURATION_IN_SECONDS
+// Duration of the simulation in number of connections.
+#define SIM_DURATION_CONNS 1000000
+#define SIM_DURATION_IN_CONNECTIONS
 #define NUM_HOSTS 50000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
@@ -61,6 +65,11 @@ int PERCENTAGE_GOOD_CONNECTION = -1;
 #define GOOD_HOST 0
 #define BAD_HOST 1
 
+#if !defined(SIM_DURATION_IN_SECONDS) && !defined(SIM_DURATION_IN_CONNECTIONS)
+#error "Must define SIM_DURATION_IN_SECONDS or SIM_DURATION_IN_CONNECTIONS"
+#endif
+
+
 struct server_info_t {
   uint8_t idx;
   bool shutdown;
@@ -80,6 +89,11 @@ struct server_info_t {
 struct table * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
+
+#ifdef SIM_DURATION_IN_CONNECTIONS
+uint32_t connections_countdown = SIM_DURATION_CONNS;
+pthread_mutex_t connections_countdown_lock;
+#endif // SIM_DURATION_IN_CONNECTIONS
 
 static void
 print_server_info(void) {
@@ -254,13 +268,13 @@ sig_handler (int signal) {
         server_info[i].shutdown = true;
       }
       attempt += 1;
-      alarm(SIM_DURATION); // Wait further before cancelling.
+      alarm(SIM_DURATION_SECS); // Wait further before cancelling.
     } else {
       fprintf(stderr, "Cancelling threads...\n");
       for (int i = 0; i < NUM_SERVERS; i++) {
         pthread_cancel(tid[i]);
       }
-      alarm(SIM_DURATION); // Keep trying to cancel.
+      alarm(SIM_DURATION_SECS); // Keep trying to cancel.
     }
   }
 }
@@ -295,9 +309,25 @@ server_main(void * arg) {
   pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &ignored);
   pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &ignored);
 
+  int error;
+
   enum outcome o;
   while (! sinfo->shutdown) {
     sleep((uint32_t)rand_range(0, MAX_SLEEP));
+
+#ifdef SIM_DURATION_IN_CONNECTIONS
+    error = pthread_mutex_lock(&connections_countdown_lock);
+    assert(!error);
+    if (0 == connections_countdown) {
+      error = pthread_mutex_unlock(&connections_countdown_lock);
+      assert(!error);
+      break;
+    }
+    connections_countdown -= 1;
+    error = pthread_mutex_unlock(&connections_countdown_lock);
+    assert(!error);
+#endif // SIM_DURATION_IN_CONNECTIONS
+
     struct host_info_t * hinfo = pick_host();
     hinfo->current_num_connections += 1;
     unlock_host(hinfo);
@@ -424,7 +454,15 @@ main(int argc, char * argv[])
   init_signals();
   srand(1802 * 9373);
 
-  alarm(SIM_DURATION);
+#ifdef SIM_DURATION_IN_SECONDS
+  alarm(SIM_DURATION_SECS);
+#endif // SIM_DURATION_IN_SECONDS
+
+  int error;
+#ifdef SIM_DURATION_IN_CONNECTIONS
+  error = pthread_mutex_init(&connections_countdown_lock, NULL);
+  assert(!error);
+#endif // SIM_DURATION_IN_CONNECTIONS
 
   generate_hosts();
 #ifdef VERBOSE
@@ -437,7 +475,7 @@ main(int argc, char * argv[])
     server_info[i].seed = rand_range(0, INT_MAX);
     server_info[i].shutdown = false;
     server_info[i].idx = (uint8_t)i;
-    int error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
+    error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
     if (error) {
       fprintf(stderr, "pthread_create: %s\n", strerror(error));
       exit(1);
@@ -450,6 +488,11 @@ main(int argc, char * argv[])
 
   destroy_table(tbl);
   shutdown_hosts();
+
+#ifdef SIM_DURATION_IN_CONNECTIONS
+  error = pthread_mutex_destroy(&connections_countdown_lock);
+  assert(!error);
+#endif // SIM_DURATION_IN_CONNECTIONS
 
   print_server_info();
 
