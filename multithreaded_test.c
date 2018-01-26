@@ -36,9 +36,12 @@ static void print_server_info(void);
 // Duration of the simulation in number of connections.
 #define SIM_DURATION_CONNS 1000000
 #define SIM_DURATION_IN_CONNECTIONS
-#define NUM_HOSTS 10000
+// FIXME i define MAX_NUM_HOSTS since the related array can't be variable-sized.
+//       This is a hack that wastes memory whenever NUM_HOSTS < MAX_NUM_HOST.
+#define MAX_NUM_HOSTS 10000
+int NUM_HOSTS = 10000;
 // The percentage of NUM_HOSTS that are "good".
-#define PERCENTAGE_GOOD_HOSTS 80
+int PERCENTAGE_GOOD_HOSTS = 80;
 // The likelihood that a connection comes from a good host -- i.e., the lower
 // this value then the more determined is the adversary.
 int PERCENTAGE_GOOD_CONNECTION = 5;
@@ -148,7 +151,7 @@ struct host_info_t {
   pthread_mutex_t lock;
   uint8_t current_num_connections;
 };
-static struct host_info_t host_info[NUM_HOSTS];
+static struct host_info_t host_info[MAX_NUM_HOSTS];
 
 static void generate_hosts(void);
 static void shutdown_hosts(void);
@@ -448,10 +451,17 @@ main(int argc, char * argv[])
   assert(GOOD_HOST != BAD_HOST);
 
   int choice;
-  while ((choice = getopt(argc, argv, "g:")) != -1) {
+  while ((choice = getopt(argc, argv, "g:h:n:")) != -1) {
     switch (choice) {
     case 'g':
       PERCENTAGE_GOOD_CONNECTION = (int)strtol(optarg, (char **)NULL, 10);
+      break;
+    case 'h':
+      PERCENTAGE_GOOD_HOSTS = (int)strtol(optarg, (char **)NULL, 10);
+      break;
+    case 'n':
+      NUM_HOSTS = (int)strtol(optarg, (char **)NULL, 10);
+      assert(NUM_HOSTS <= MAX_NUM_HOSTS);
       break;
     default:
       fprintf(stderr, "Unrecognised option: %c\n", choice);
