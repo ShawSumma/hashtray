@@ -36,7 +36,7 @@ static void print_server_info(void);
 // Duration of the simulation in number of connections.
 #define SIM_DURATION_CONNS 1000000
 #define SIM_DURATION_IN_CONNECTIONS
-#define NUM_HOSTS 50000
+#define NUM_HOSTS 10000
 // The percentage of NUM_HOSTS that are "good".
 #define PERCENTAGE_GOOD_HOSTS 80
 // The likelihood that a connection comes from a good host -- i.e., the lower
@@ -48,7 +48,8 @@ int PERCENTAGE_GOOD_CONNECTION = -1;
 // are coming in all the time.
 #define MAX_SLEEP 0
 // Bounds on the amount of time that an adversary can stall a connection.
-#define MIN_STALL 2
+#define MIN_STALL 5
+// NOTE by setting MIN_STALL==MAX_STALL I'm removing the randomness of stalling.
 #define MAX_STALL 5
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
 #define MAX_CONNS 1
