@@ -456,6 +456,7 @@ main(int argc, char * argv[])
   bool dump_parameters = false;
 
   int choice;
+  // FIXME show "usage" when no parameters provided? Since "-h" is already taken.
   while ((choice = getopt(argc, argv, "dg:h:n:u:v:")) != -1) {
     switch (choice) {
     case 'd':
