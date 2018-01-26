@@ -67,6 +67,9 @@ int MAX_STALL = 5;
 // The values used to classify hosts.
 #define GOOD_HOST 0
 #define BAD_HOST 1
+#if (GOOD_HOST == BAD_HOST)
+#error "GOOD_HOST and BAD_HOST must have different values"
+#endif
 
 #if !defined(SIM_DURATION_IN_SECONDS) && !defined(SIM_DURATION_IN_CONNECTIONS)
 #error "Must define SIM_DURATION_IN_SECONDS or SIM_DURATION_IN_CONNECTIONS"
@@ -448,8 +451,6 @@ server_main(void * arg) {
 int
 main(int argc, char * argv[])
 {
-  assert(GOOD_HOST != BAD_HOST);
-
   bool dump_parameters = false;
 
   int choice;
