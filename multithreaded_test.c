@@ -50,9 +50,9 @@ int PERCENTAGE_GOOD_CONNECTION = 5;
 // are coming in all the time.
 #define MAX_SLEEP 0
 // Bounds on the amount of time that an adversary can stall a connection.
-#define MIN_STALL 5
+int MIN_STALL = 5;
 // NOTE by setting MIN_STALL==MAX_STALL I'm removing the randomness of stalling.
-#define MAX_STALL 5
+int MAX_STALL = 5;
 // Maximum number of connections a host can have with our servers. (These connections may be distributed among different servers.)
 #define MAX_CONNS 1
 // The quantity of units to be added to the average delay, to serve as a tolerance.
@@ -451,7 +451,7 @@ main(int argc, char * argv[])
   assert(GOOD_HOST != BAD_HOST);
 
   int choice;
-  while ((choice = getopt(argc, argv, "g:h:n:")) != -1) {
+  while ((choice = getopt(argc, argv, "g:h:n:u:v:")) != -1) {
     switch (choice) {
     case 'g':
       PERCENTAGE_GOOD_CONNECTION = (int)strtol(optarg, (char **)NULL, 10);
@@ -462,6 +462,12 @@ main(int argc, char * argv[])
     case 'n':
       NUM_HOSTS = (int)strtol(optarg, (char **)NULL, 10);
       assert(NUM_HOSTS <= MAX_NUM_HOSTS);
+      break;
+    case 'u':
+      MIN_STALL = (int)strtol(optarg, (char **)NULL, 10);
+      break;
+    case 'v':
+      MAX_STALL = (int)strtol(optarg, (char **)NULL, 10);
       break;
     default:
       fprintf(stderr, "Unrecognised option: %c\n", choice);
@@ -478,6 +484,8 @@ main(int argc, char * argv[])
     fprintf(stderr, "\n");
     exit(2);
   }
+
+  assert(MIN_STALL <= MAX_STALL);
 
   atexit(exit_handler);
   init_signals();
