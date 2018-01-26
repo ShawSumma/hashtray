@@ -63,6 +63,8 @@ int MAX_STALL = 5;
 
 // Bound on loops.
 #define MAX_ITERATIONS 500
+// Seed for PRNG
+#define RAND_SEED 1802 * 9373
 
 // The values used to classify hosts.
 #define GOOD_HOST 0
@@ -548,12 +550,13 @@ main(int argc, char * argv[])
     printf("MAX_CONNS=%d\n", MAX_CONNS);
     printf("DELAY_TOLERANCE=%d\n", DELAY_TOLERANCE);
     printf("MAX_ITERATIONS=%d\n", MAX_ITERATIONS);
+    printf("RAND_SEED=%d\n", RAND_SEED);
     exit(0);
   }
 
   atexit(exit_handler);
   init_signals();
-  srand(1802 * 9373);
+  srand(RAND_SEED);
 
 #ifdef SIM_DURATION_IN_SECONDS
   alarm(SIM_DURATION_SECS);
