@@ -51,6 +51,13 @@ enum outcome {OK = 0, /*COLLISION, -- we allow collisions, i.e., confusing the m
   NOT_FOUND, GAVE_UP, BLOCKS_FULL,
   END_MARKER};
 
+struct table * create_table(void);
+void destroy_table(struct table * t);
+
+enum outcome insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
+enum outcome delete(struct table * t, DATA_TYPE data);
+enum outcome lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata);
+
 extern const char * outcome_str[];
 #define PRINT_OUTCOME(o) { \
   printf("%s\n", outcome_str[o]); \
@@ -71,13 +78,6 @@ typedef unsigned outcome_count[END_MARKER];
   } \
   printf("\n"); \
 }
-
-enum outcome insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
-enum outcome delete(struct table * t, DATA_TYPE data);
-enum outcome lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata);
-
-struct table * create_table(void);
-void destroy_table(struct table * t);
 
 #ifdef REMEMBER_LOSS
 #define NUM_OVERFILL_ENTRIES 200
