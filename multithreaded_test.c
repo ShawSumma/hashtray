@@ -126,7 +126,7 @@ print_server_info(void) {
         server_info[i].num_connections_bad, server_info[i].tot_duration,
         server_info[i].avg_duration, server_info[i].host_unknown,
         server_info[i].host_known, server_info[i].host_classified_correct,
-        server_info[i].host_classified_incorrect);
+        server_info[i].host_classified_incorrect, server_info[i].fault);
 #endif // VERBOSE
 
     fault_occurred |= server_info[i].fault;
