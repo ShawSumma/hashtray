@@ -277,6 +277,8 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 #ifndef LAME_KICK_SEQUENCE
     entry = (int)rand() % NUM_CELL_ENTRIES;
 #endif
+    // FIXME could iterate through entries to find a free one, rather do
+    //       unnecessary kicking.
 
     // FIXME check for collision among the other entries (which might
     //       have been moved to an alternative bucket).
@@ -295,7 +297,8 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       error = pthread_mutex_unlock(&(t->lock[table_idx]));
       assert(!error);
 #endif // MULTITHREADED
-      // FIXME we just forgot to reinsert swapped_key & swapped_value?
+      // We have filled an empty entry (i.e., it's "clear" flag was set) so
+      // there's no need to do further kicking.
       return OK;
     }
 
