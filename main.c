@@ -75,7 +75,7 @@ static inline uint64_t rdtscp(uint32_t * aux)
     return (rdx << 32) + rax;
 }
 
-#define TEST_DATASET_SIZE 10000
+#define TEST_DATASET_SIZE 50000
 struct test_data {
   DATA_TYPE datum;
   VALUE_TYPE metadatum;
@@ -161,6 +161,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
         }
       } else if (NOT_FOUND == o) {
 #ifdef REMEMBER_LOSS
+        // We expect this item to have been found, so it must have overflowed.
         assert(has_overflowed(data));
 #endif // REMEMBER_LOSS
       }

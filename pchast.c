@@ -120,6 +120,10 @@ has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
         fingerprint == collision.collided_with[idx].key) {
+      /* FIXME This assertion might be too strong if there's been several
+               collisions, which can happen if there's a big disparity
+               between the original domain and the table size.
+      */
       assert(queried_metadata == collision.entry[idx].value ||
           queried_metadata == collision.collided_with[idx].value);
       return true;
@@ -137,12 +141,11 @@ hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
   KEY_TYPE hash = data;
 
-  // NOTE from http://www.azillionmonkeys.com/qed/hash.html
+  // NOTE based on http://www.azillionmonkeys.com/qed/hash.html
   hash ^= hash << (3 + k);
   hash += hash >> 5;
   hash ^= hash << 4;
   hash += hash >> (17 - k);
-  hash ^= hash << 25;
   hash += hash >> 6;
 
   return hash % TABLE_SIZE;
@@ -156,9 +159,8 @@ hash_of_uint32_to_uint16(uint32_t data)
     uint16_t as_uint16_t[2];
   } conversion;
   conversion.as_uint32_t = data;
-  return hash_of_KEY_TYPE(data % 3,
-      conversion.as_uint16_t[0] +
-      conversion.as_uint16_t[1]);
+  return hash_of_KEY_TYPE(0, conversion.as_uint16_t[0]) ^
+    hash_of_KEY_TYPE(1, conversion.as_uint16_t[1]);
 }
 
 KEY_TYPE
