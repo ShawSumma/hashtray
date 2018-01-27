@@ -178,7 +178,9 @@ alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
   if (idx == h1) {
     return h2;
   } else {
+#ifdef PCHAST_ASSERT
     assert(idx == h2);
+#endif // PCHAST_ASSERT
     return h1;
   }
 }
@@ -213,7 +215,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     int table_idx = (int)is.idx[idx];
 #ifdef MULTITHREADED
     int error = pthread_mutex_lock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (t->cell[table_idx].entry[i].clear) {
@@ -222,7 +226,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
         t->cell[table_idx].entry[i].value = metadata;
 #ifdef MULTITHREADED
         error = pthread_mutex_unlock(&(t->lock[table_idx]));
-        assert(!error);
+#ifdef PCHAST_ASSERT
+        assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
         return OK;
       }
@@ -251,7 +257,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     }
 #ifdef MULTITHREADED
     error = pthread_mutex_unlock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
   }
 #ifdef FAIL_EAGERLY
@@ -273,7 +281,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     //       rather than a single one.
 #ifdef MULTITHREADED
     int error = pthread_mutex_lock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
     swapped_key = t->cell[table_idx].entry[entry].key;
     swapped_value = t->cell[table_idx].entry[entry].value;
@@ -284,7 +294,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       t->cell[table_idx].entry[entry].clear = false;
 #ifdef MULTITHREADED
       error = pthread_mutex_unlock(&(t->lock[table_idx]));
-      assert(!error);
+#ifdef PCHAST_ASSERT
+      assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
@@ -295,7 +307,9 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     metadata = swapped_value;
 #ifdef MULTITHREADED
     error = pthread_mutex_unlock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
    // NOTE in addition to exploring the alternative block we could also explore
    //      a fingerprint's "non-alternative" block for available entries --
@@ -328,7 +342,9 @@ delete(struct table * t, DATA_TYPE data)
     int table_idx = (int)is.idx[idx];
 #ifdef MULTITHREADED
     int error = pthread_mutex_lock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
@@ -336,14 +352,18 @@ delete(struct table * t, DATA_TYPE data)
         t->cell[table_idx].entry[i].clear = true;
 #ifdef MULTITHREADED
         error = pthread_mutex_unlock(&(t->lock[table_idx]));
-        assert(!error);
+#ifdef PCHAST_ASSERT
+        assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
         return OK;
       }
     }
 #ifdef MULTITHREADED
     error = pthread_mutex_unlock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
   }
   return NOT_FOUND;
@@ -358,7 +378,9 @@ lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
     int table_idx = (int)is.idx[idx];
 #ifdef MULTITHREADED
     int error = pthread_mutex_lock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
@@ -366,14 +388,18 @@ lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
         *metadata = t->cell[table_idx].entry[i].value;
 #ifdef MULTITHREADED
         error = pthread_mutex_unlock(&(t->lock[table_idx]));
-        assert(!error);
+#ifdef PCHAST_ASSERT
+        assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
         return OK;
       }
     }
 #ifdef MULTITHREADED
     error = pthread_mutex_unlock(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
   }
   return NOT_FOUND;
@@ -389,7 +415,9 @@ create_table(void)
     }
 #ifdef MULTITHREADED
     int error = pthread_mutex_init(&(t->lock[table_idx]), NULL);
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
   }
   return t;
@@ -401,7 +429,9 @@ destroy_table(struct table * t)
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
 #ifdef MULTITHREADED
     int error = pthread_mutex_destroy(&(t->lock[table_idx]));
-    assert(!error);
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #endif // MULTITHREADED
   }
   free(t);
@@ -410,8 +440,10 @@ destroy_table(struct table * t)
 int
 rand_range(int min, int max)
 {
+#ifdef PCHAST_ASSERT
   assert(min >= 0);
   assert(max >= min);
+#endif // PCHAST_ASSERT
 
   if (min == max) {
     return min;
