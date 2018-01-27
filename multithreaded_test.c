@@ -418,24 +418,20 @@ server_main(void * arg) {
       //       adversary, and our difficulty classifying them.
       // FIXME Compare this against not having the classification in place.
 
-      if (! sinfo->shutdown) {
-        // FIXME can make the simulator "blind" to "is_good" by only observing timings,
-        //       and keeping a moving average.
-        if (! hinfo->is_good) {
+      if (! hinfo->is_good) {
 #ifdef SHOW_PROGRESS
-          printf("-"); fflush(stdout);
+        printf("-"); fflush(stdout);
 #endif // SHOW_PROGRESS
-          classification = BAD_HOST;
-          delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
-        } else {
+        classification = BAD_HOST;
+        delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
+      } else {
 #ifdef SHOW_PROGRESS
-          printf("+"); fflush(stdout);
+        printf("+"); fflush(stdout);
 #endif // SHOW_PROGRESS
 #ifndef PERFECT_GOOD
-          delay = (uint32_t)rand_range(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
+        delay = (uint32_t)rand_range(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
 #endif // PERFECT_GOOD
-          classification = GOOD_HOST;
-        }
+        classification = GOOD_HOST;
       }
 
       if (USE_PCHAST) {
@@ -445,11 +441,15 @@ server_main(void * arg) {
           classification = BAD_HOST;
           if (hinfo->is_good) {
             sinfo->host_classified_incorrect += 1;
+          } else {
+            sinfo->host_classified_correct += 1;
           }
         } else {
           classification = GOOD_HOST;
           if (hinfo->is_good) {
             sinfo->host_classified_correct += 1;
+          } else {
+            sinfo->host_classified_incorrect += 1;
           }
         }
 #endif // USE_PERFECT_CLASSIFIER
