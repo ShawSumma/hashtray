@@ -139,14 +139,14 @@ const char * outcome_str[] =
 KEY_TYPE
 hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
-  KEY_TYPE hash = data;
+  KEY_TYPE hash = data + (data * (KEY_TYPE)k) + (KEY_TYPE)k;
 
   // NOTE based on http://www.azillionmonkeys.com/qed/hash.html
   hash ^= hash << (3 + k);
   hash += hash >> 5;
   hash ^= hash << 4;
   hash += hash >> (17 - k);
-  hash += hash >> 6;
+  hash += hash << 6;
 
   return hash % TABLE_SIZE;
 }
@@ -166,7 +166,7 @@ hash_of_uint32_to_uint16(uint32_t data)
 KEY_TYPE
 fingerprint_of_DATA_TYPE(DATA_TYPE data)
 {
-  return hash_of_uint32_to_uint16(1 - data);
+  return hash_of_uint32_to_uint16(data);
 }
 
 KEY_TYPE
