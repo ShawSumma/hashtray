@@ -257,31 +257,20 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 #ifdef FAIL_EAGERLY
   return BLOCKS_FULL;
 #else
-  int table_idx;
-#ifdef LAME_KICK_SEQUENCE
-  #define DEFAULT_IDX 0
-  table_idx = (int)is.idx[DEFAULT_IDX];
-#else
-  table_idx = (int)is.idx[(int)rand() % CHOICES];
-#endif
-
-  int entry;
-#ifdef LAME_KICK_SEQUENCE
-    #define DEFAULT_ENTRY 0
-    entry = DEFAULT_ENTRY;
-#endif
+  int table_idx = (int)is.idx[(int)rand() % CHOICES];
 
   KEY_TYPE swapped_key;
   VALUE_TYPE swapped_value;
   for (int try_num = 0; try_num < MAX_KICKOUTS; try_num++) {
-#ifndef LAME_KICK_SEQUENCE
-    entry = (int)rand() % NUM_CELL_ENTRIES;
-#endif
+    int entry = (int)rand() % NUM_CELL_ENTRIES;
     // FIXME could iterate through entries to find a free one, rather do
-    //       unnecessary kicking.
+    //       unnecessary kicking by picking a random value for "entry".
 
     // FIXME check for collision among the other entries (which might
-    //       have been moved to an alternative bucket).
+    //       have been moved to an alternative bucket). But beware of
+    //       over-reporting collisions, e.g., if 2 entries get kicked
+    //       down a similar path, it might be counted as multiple collisions
+    //       rather than a single one.
 #ifdef MULTITHREADED
     int error = pthread_mutex_lock(&(t->lock[table_idx]));
     assert(!error);
@@ -327,7 +316,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
   return GAVE_UP;
-#endif
+#endif // FAIL_EAGERLY
 }
 
 enum outcome
