@@ -204,7 +204,7 @@ insert_test(struct table * test_table)
   RESET_OUTCOME_STATS(oc)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (DATA_TYPE)rand_range(0, INT_MAX);
+    result[i].datum = (DATA_TYPE)i;
     result[i].metadatum = (VALUE_TYPE)i;
 
 #if COOL_THE_CACHE
@@ -359,6 +359,9 @@ int
 main()
 {
   srand(1802 * 9373);
+
+  printf("TABLE_SIZE=%d, NUM_CELL_ENTRIES=%d, TEST_DATASET_SIZE=%d\n",
+      TABLE_SIZE, NUM_CELL_ENTRIES, TEST_DATASET_SIZE);
 
 #if 0
   // Pin to a single core
