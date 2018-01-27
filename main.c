@@ -75,7 +75,7 @@ static inline uint64_t rdtscp(uint32_t * aux)
     return (rdx << 32) + rax;
 }
 
-#define TEST_DATASET_SIZE 500
+#define TEST_DATASET_SIZE 10000
 struct test_data {
   DATA_TYPE datum;
   VALUE_TYPE metadatum;
@@ -134,6 +134,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
     uint64_t one = rdtscp(&aux);
     o = lookup(test_table, data, &queried_metadata);
     uint64_t two = rdtscp(&aux);
+
 #if 0
     PRINT_OUTCOME(o);
 #endif
@@ -146,12 +147,16 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
       if (OK == o) {
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
+#if 0
           KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
           printf("Unexpected result for data=%d (key=%d): expected %d but retrieved %d\n",
               data, fingerprint, test_dataset[i].metadatum, queried_metadata);
+#endif
 #ifdef REMEMBER_COLLISIONS
           assert(has_collided(data, queried_metadata));
+#if 0
           printf("  Confirmed that this was due to collisions.\n");
+#endif
 #endif // REMEMBER_COLLISIONS
         }
       } else if (NOT_FOUND == o) {
@@ -176,6 +181,9 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
   print_overfill(false);
   reset_overfill();
 #endif // REMEMBER_LOSS
+#ifdef REMEMBER_COLLISIONS
+  print_collision(false);
+#endif // REMEMBER_COLLISIONS
 }
 
 struct test_data *
@@ -227,7 +235,7 @@ insert_test(struct table * test_table)
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
-  print_collision(true);
+  print_collision(false);
   // NOTE We should not reset collision, since this would invalidate
   //      a future test for collisions.
 #endif // REMEMBER_COLLISIONS

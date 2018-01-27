@@ -226,6 +226,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       }
 #ifdef REMEMBER_COLLISIONS
       else {
+        assert(collision_idx < NUM_COLLIDED_ENTRIES);
         // FIXME check for collision among the other entries (which might
         //       have been moved to an alternative bucket).
         if (t->cell[table_idx].entry[i].key == fingerprint) {
@@ -234,12 +235,13 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
           collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
           collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
 #ifdef DESCRIBE_COLLISIONS
-          printf("(%d, %d) collided with (%d, %d)\n",
+          printf("(%d, %d) collided with (%d, %d) on table_idx=%d\n",
           collision.entry[collision_idx].key,
           collision.entry[collision_idx].value,
           collision.collided_with[collision_idx].key,
-          collision.collided_with[collision_idx].value);
-#endif
+          collision.collided_with[collision_idx].value,
+          table_idx);
+#endif // DESCRIBE_COLLISIONS
           collision_idx += 1;
         }
       }
@@ -309,6 +311,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     table_idx = (int)alt_idx((KEY_TYPE)table_idx, fingerprint);
   }
 #ifdef REMEMBER_LOSS
+  assert(overfill_idx < NUM_OVERFILL_ENTRIES);
   // Record which items got kicked out of the table.
   // NOTE This behaviour might be exploited, to have elements of the table
   //      erased (having them kicked out), if an adversary can engineer a
