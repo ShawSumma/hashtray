@@ -14,7 +14,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 #include <pthread.h>
 #endif // MULTITHREADED
 
-// NOTE keysize needs to be bigger to occupy more of this table size. Currently
+// NOTE keysize needs to be bigger to occupy a larger table size. Initially
 //      KEY_TYPE==uint8_t, which allows us to address 256 cells, each with
 //      NUM_CELL_ENTRIES entries (i.e., if NUM_CELL_ENTRIES==4 then we can
 //      store around a thousand distinct pieces of info).
@@ -22,7 +22,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 #define TABLE_SIZE 10000
 
 #define NUM_CELL_ENTRIES 4
-#define KEY_TYPE uint8_t
+#define KEY_TYPE uint16_t
 #define VALUE_TYPE uint32_t
 #define DATA_TYPE uint32_t
 #define CHOICES 2
@@ -34,10 +34,6 @@ struct table;
 
 int rand_range(int min, int max);
 
-char hash_of_uint32_to_char(uint32_t data);
-char hash_of_char_to_char(char data);
-KEY_TYPE hash_of_KEY_TYPE(KEY_TYPE data);
-KEY_TYPE hash_of_DATA_TYPE(DATA_TYPE data);
 KEY_TYPE fingerprint_of_DATA_TYPE(DATA_TYPE data);
 
 struct idxs {
