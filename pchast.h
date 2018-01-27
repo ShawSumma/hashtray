@@ -21,7 +21,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 //
 #define TABLE_SIZE 10000
 
-#define NUM_CELL_ENTRIES 8
+#define NUM_CELL_ENTRIES 4
 #define KEY_TYPE uint16_t
 #define VALUE_TYPE uint32_t
 #define DATA_TYPE uint32_t
@@ -76,10 +76,10 @@ typedef unsigned outcome_count[END_MARKER];
   printf("\n"); \
 }
 
-#define EXTENDED_MEMORY_FACTOR 10
+#define EXTENDED_MEMORY_FACTOR 1
 
 #ifdef REMEMBER_LOSS
-#define NUM_OVERFILL_ENTRIES TABLE_SIZE * EXTENDED_MEMORY_FACTOR
+#define NUM_OVERFILL_ENTRIES (TABLE_SIZE * EXTENDED_MEMORY_FACTOR)
 struct overfill_t;
 extern struct overfill_t overfill;
 extern int overfill_idx;
@@ -89,7 +89,7 @@ bool has_overflowed(DATA_TYPE data);
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
-#define NUM_COLLIDED_ENTRIES TABLE_SIZE * EXTENDED_MEMORY_FACTOR
+#define NUM_COLLIDED_ENTRIES (TABLE_SIZE * EXTENDED_MEMORY_FACTOR)
 struct collision_t;
 extern struct collision_t collision;
 extern int collision_idx;
