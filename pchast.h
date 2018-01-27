@@ -25,6 +25,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 #define KEY_TYPE uint16_t
 #define VALUE_TYPE uint32_t
 #define DATA_TYPE uint32_t
+// CHOICES and MAX_KICKOUTS parameters follow the Cuckoo Filter paper.
 #define CHOICES 2
 #define MAX_KICKOUTS 500
 
