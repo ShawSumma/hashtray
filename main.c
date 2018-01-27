@@ -187,6 +187,22 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 #endif // REMEMBER_COLLISIONS
 }
 
+static struct test_data *
+generate_test_input(void)
+{
+  struct test_data * result = malloc(sizeof(struct test_data) * TEST_DATASET_SIZE);
+  for (int i = 0; i < TEST_DATASET_SIZE; i++) {
+    result[i].datum = (DATA_TYPE)i;
+    result[i].metadatum = (VALUE_TYPE)i;
+  }
+#ifdef LOG_INSERTS
+  for (int i = 0; i < TEST_DATASET_SIZE; i++) {
+    printf("Test entry %d: (%d, %d)\n", i, result[i].datum, result[i].metadatum);
+  }
+#endif // LOG_INSERTS
+  return result;
+}
+
 struct test_data *
 insert_test(struct table * test_table)
 {
@@ -196,7 +212,7 @@ insert_test(struct table * test_table)
   uint64_t max = 0;
   uint64_t min = 0;
 
-  struct test_data * result = malloc(sizeof(*result) * TEST_DATASET_SIZE);
+  struct test_data * result = generate_test_input();
 
   enum outcome o;
 
@@ -204,9 +220,6 @@ insert_test(struct table * test_table)
   RESET_OUTCOME_STATS(oc)
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (DATA_TYPE)i;
-    result[i].metadatum = (VALUE_TYPE)i;
-
 #if COOL_THE_CACHE
     (void)cool_cache();
 #endif
@@ -400,6 +413,10 @@ main()
   printf("Lookup test (of random data) on a table in which the data was previously inserted.\n");
   lookup_test(test_dataset, my_tab);
   printf("\n");
+
+  // We can clear these out before the next test.
+  reset_overfill();
+  reset_collision();
 
   // Test 4: mix lookups and inserts
   // Execute lookup again based on test data, and time it.
