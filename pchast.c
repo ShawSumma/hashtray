@@ -17,8 +17,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include "pchast.h"
 
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
-static KEY_TYPE hash_of_KEY_TYPE(KEY_TYPE data);
-static KEY_TYPE hash_of_DATA_TYPE(DATA_TYPE data);
+static KEY_TYPE hash_of_KEY_TYPE(int k, KEY_TYPE data);
 
 struct entry {
   bool clear;
@@ -134,10 +133,19 @@ const char * outcome_str[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
 KEY_TYPE
-hash_of_KEY_TYPE(KEY_TYPE data)
-  // FIXME signature+role of this function seems silly
+hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
-  return data;
+  KEY_TYPE hash = data;
+
+  // NOTE from http://www.azillionmonkeys.com/qed/hash.html
+  hash ^= hash << (3 + k);
+  hash += hash >> 5;
+  hash ^= hash << 4;
+  hash += hash >> (17 - k);
+  hash ^= hash << 25;
+  hash += hash >> 6;
+
+  return hash % TABLE_SIZE;
 }
 
 uint16_t
@@ -148,14 +156,9 @@ hash_of_uint32_to_uint16(uint32_t data)
     uint16_t as_uint16_t[2];
   } conversion;
   conversion.as_uint32_t = data;
-  return hash_of_KEY_TYPE(conversion.as_uint16_t[0] +
+  return hash_of_KEY_TYPE(data % 3,
+      conversion.as_uint16_t[0] +
       conversion.as_uint16_t[1]);
-}
-
-KEY_TYPE
-hash_of_DATA_TYPE(DATA_TYPE data)
-{
-  return hash_of_uint32_to_uint16(data);
 }
 
 KEY_TYPE
@@ -167,7 +170,15 @@ fingerprint_of_DATA_TYPE(DATA_TYPE data)
 KEY_TYPE
 alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
 {
-  return (idx ^ hash_of_KEY_TYPE(fingerprint));
+  // FIXME assuming CHOICE==2
+  KEY_TYPE h1 = hash_of_KEY_TYPE(0, fingerprint);
+  KEY_TYPE h2 = hash_of_KEY_TYPE(1, fingerprint);
+  if (idx == h1) {
+    return h2;
+  } else {
+    assert(idx == h2);
+    return h1;
+  }
 }
 
 struct idxs
@@ -175,12 +186,14 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
 {
   struct idxs result;
   *fingerprint = fingerprint_of_DATA_TYPE(data);
-  // NOTE here we assume that CHOICES==2
-  result.idx[0] = hash_of_DATA_TYPE(data);
-  result.idx[1] = (result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint));
+  for (int i = 0; i < CHOICES; i++) {
+    result.idx[i] = hash_of_KEY_TYPE(i, *fingerprint);
+  }
 #ifdef PCHAST_ASSERT
-  assert((int)result.idx[0] >= 0);
-  assert((int)result.idx[1] >= 0);
+  for (int i = 0; i < CHOICES; i++) {
+    assert((int)result.idx[i] >= 0);
+    assert((int)result.idx[i] < TABLE_SIZE);
+  }
 #endif // PCHAST_ASSERT
   return result;
 }
