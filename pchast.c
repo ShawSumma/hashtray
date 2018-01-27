@@ -135,35 +135,10 @@ const char * outcome_str[] =
 
 KEY_TYPE
 hash_of_KEY_TYPE(KEY_TYPE data)
+  // FIXME signature+role of this function seems silly
 {
-  KEY_TYPE hash = data;
-
-  // NOTE from http://www.azillionmonkeys.com/qed/hash.html
-  hash ^= hash << 3;
-  hash += hash >> 5;
-  hash ^= hash << 4;
-  hash += hash >> 17;
-  hash ^= hash << 25;
-  hash += hash >> 6;
-
-  return hash;
+  return data;
 }
-
-/*
-uint8_t
-hash_of_uint32_to_uint8(uint32_t data)
-{
-  union {
-    uint32_t as_uint32_t;
-    uint8_t as_byte_array[4];
-  } conversion;
-  conversion.as_uint32_t = data;
-  return hash_of_KEY_TYPE(conversion.as_byte_array[0]) ^
-    hash_of_KEY_TYPE(conversion.as_byte_array[1]) ^
-    hash_of_KEY_TYPE(conversion.as_byte_array[2]) ^
-    hash_of_KEY_TYPE(conversion.as_byte_array[3]);
-}
-*/
 
 uint16_t
 hash_of_uint32_to_uint16(uint32_t data)
@@ -173,9 +148,8 @@ hash_of_uint32_to_uint16(uint32_t data)
     uint16_t as_uint16_t[2];
   } conversion;
   conversion.as_uint32_t = data;
-  uint16_t result = hash_of_KEY_TYPE(conversion.as_uint16_t[0]) ^
-    hash_of_KEY_TYPE(conversion.as_uint16_t[1]);
-  return result /*FIXME % TABLE_SIZE*/;
+  return hash_of_KEY_TYPE(conversion.as_uint16_t[0] +
+      conversion.as_uint16_t[1]);
 }
 
 KEY_TYPE
@@ -193,7 +167,7 @@ fingerprint_of_DATA_TYPE(DATA_TYPE data)
 KEY_TYPE
 alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
 {
-  return (idx ^ hash_of_KEY_TYPE(fingerprint)) % TABLE_SIZE;
+  return (idx ^ hash_of_KEY_TYPE(fingerprint));
 }
 
 struct idxs
@@ -202,8 +176,8 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
   struct idxs result;
   *fingerprint = fingerprint_of_DATA_TYPE(data);
   // NOTE here we assume that CHOICES==2
-  result.idx[0] = hash_of_DATA_TYPE(data) % TABLE_SIZE;
-  result.idx[1] = (result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint)) % TABLE_SIZE;
+  result.idx[0] = hash_of_DATA_TYPE(data);
+  result.idx[1] = (result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint));
 #ifdef PCHAST_ASSERT
   assert((int)result.idx[0] >= 0);
   assert((int)result.idx[1] >= 0);
