@@ -16,6 +16,10 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 
 #include "pchast.h"
 
+static uint16_t hash_of_uint32_to_uint16(uint32_t data);
+static KEY_TYPE hash_of_KEY_TYPE(KEY_TYPE data);
+static KEY_TYPE hash_of_DATA_TYPE(DATA_TYPE data);
+
 struct entry {
   bool clear;
   KEY_TYPE key;
@@ -142,9 +146,10 @@ hash_of_KEY_TYPE(KEY_TYPE data)
   hash ^= hash << 25;
   hash += hash >> 6;
 
-  return hash + 1;
+  return hash;
 }
 
+/*
 uint8_t
 hash_of_uint32_to_uint8(uint32_t data)
 {
@@ -158,23 +163,37 @@ hash_of_uint32_to_uint8(uint32_t data)
     hash_of_KEY_TYPE(conversion.as_byte_array[2]) ^
     hash_of_KEY_TYPE(conversion.as_byte_array[3]);
 }
+*/
+
+uint16_t
+hash_of_uint32_to_uint16(uint32_t data)
+{
+  union {
+    uint32_t as_uint32_t;
+    uint16_t as_uint16_t[2];
+  } conversion;
+  conversion.as_uint32_t = data;
+  uint16_t result = hash_of_KEY_TYPE(conversion.as_uint16_t[0]) ^
+    hash_of_KEY_TYPE(conversion.as_uint16_t[1]);
+  return result /*FIXME % TABLE_SIZE*/;
+}
 
 KEY_TYPE
 hash_of_DATA_TYPE(DATA_TYPE data)
 {
-  return hash_of_uint32_to_uint8(data);
+  return hash_of_uint32_to_uint16(data);
 }
 
 KEY_TYPE
 fingerprint_of_DATA_TYPE(DATA_TYPE data)
 {
-  return hash_of_uint32_to_uint8(1 - data);
+  return hash_of_uint32_to_uint16(1 - data);
 }
 
 KEY_TYPE
 alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
 {
-  return idx ^ hash_of_KEY_TYPE(fingerprint);
+  return (idx ^ hash_of_KEY_TYPE(fingerprint)) % TABLE_SIZE;
 }
 
 struct idxs
@@ -183,8 +202,8 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
   struct idxs result;
   *fingerprint = fingerprint_of_DATA_TYPE(data);
   // NOTE here we assume that CHOICES==2
-  result.idx[0] = hash_of_DATA_TYPE(data);
-  result.idx[1] = result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint);
+  result.idx[0] = hash_of_DATA_TYPE(data) % TABLE_SIZE;
+  result.idx[1] = (result.idx[0] ^ hash_of_KEY_TYPE(*fingerprint)) % TABLE_SIZE;
 #ifdef PCHAST_ASSERT
   assert((int)result.idx[0] >= 0);
   assert((int)result.idx[1] >= 0);
@@ -263,7 +282,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 
   KEY_TYPE swapped_key;
   VALUE_TYPE swapped_value;
-  for (int try = 0; try < MAX_KICKOUTS; try++) {
+  for (int try_num = 0; try_num < MAX_KICKOUTS; try_num++) {
 #ifndef LAME_KICK_SEQUENCE
     entry = (int)rand() % NUM_CELL_ENTRIES;
 #endif
@@ -285,6 +304,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       error = pthread_mutex_unlock(&(t->lock[table_idx]));
       assert(!error);
 #endif // MULTITHREADED
+      // FIXME we just forgot to reinsert swapped_key & swapped_value?
       return OK;
     }
 
@@ -406,14 +426,12 @@ destroy_table(struct table * t)
 int
 rand_range(int min, int max)
 {
+  assert(min >= 0);
   assert(max >= min);
 
   if (min == max) {
     return min;
   }
-
-  assert(min >= 0);
-  assert(max > 0);
 
   return min + (rand() % (max - min));
 }
