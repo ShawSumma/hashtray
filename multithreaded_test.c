@@ -254,12 +254,6 @@ unlock_host(struct host_info_t * hinfo) {
 static struct host_info_t *
 pick_host(void) {
 
-  if ((100 == PERCENTAGE_GOOD_CONNECTION && 0 == PERCENTAGE_GOOD_HOSTS) ||
-      (100 == PERCENTAGE_GOOD_HOSTS && 0 == PERCENTAGE_GOOD_CONNECTION)) {
-    // There's no way of picking a host that satisfies this requenst.
-    return NULL;
-  }
-
   int idx;
   int iterations = MAX_ITERATIONS;
   for (; iterations > 0; iterations--) {
@@ -277,8 +271,18 @@ pick_host(void) {
       assert(!error);
     }
   }
-  assert(iterations > 0);
-  return &(host_info[idx]);
+
+  if (iterations > 0) {
+    return &(host_info[idx]);
+  } else {
+    // We haven't found a way of satisfying this request. This might be because
+    //  (100 == PERCENTAGE_GOOD_CONNECTION && 0 == PERCENTAGE_GOOD_HOSTS) ||
+    //  (100 == PERCENTAGE_GOOD_HOSTS && 0 == PERCENTAGE_GOOD_CONNECTION))
+    // as these would be impossible to satisfy, or maybe the request _could_ be
+    // satisfied but with a low probability that couldn't be met within
+    // MAX_ITERATIONS iterations.
+    return NULL;
+  }
 }
 
 struct sigaction sigact;
@@ -482,6 +486,7 @@ main(int argc, char * argv[])
 
   int choice;
   // FIXME show "usage" when no parameters provided? Since "-h" is already taken.
+  // FIXME we don't check if the same parameter has been set twice.
   while ((choice = getopt(argc, argv, "dg:h:n:pu:v:")) != -1) {
     switch (choice) {
     case 'd':
