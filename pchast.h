@@ -19,7 +19,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 //      NUM_CELL_ENTRIES entries (i.e., if NUM_CELL_ENTRIES==4 then we can
 //      store around a thousand distinct pieces of info).
 //
-#define TABLE_SIZE 10000
+#define TABLE_SIZE 100
 
 #define NUM_CELL_ENTRIES 4
 #define KEY_TYPE uint16_t
@@ -76,7 +76,7 @@ typedef unsigned outcome_count[END_MARKER];
   printf("\n"); \
 }
 
-#define EXTENDED_MEMORY_FACTOR 1
+#define EXTENDED_MEMORY_FACTOR 10
 
 #ifdef REMEMBER_LOSS
 #define NUM_OVERFILL_ENTRIES (TABLE_SIZE * EXTENDED_MEMORY_FACTOR)
