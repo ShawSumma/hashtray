@@ -117,19 +117,18 @@ bool
 has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
   assert(collision_idx > 0);
   KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
+  bool found_collision = false;
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
         fingerprint == collision.collided_with[idx].key) {
-      /* FIXME This assertion might be too strong if there's been several
-               collisions, which can happen if there's a big disparity
-               between the original domain and the table size.
-      */
-      assert(queried_metadata == collision.entry[idx].value ||
-          queried_metadata == collision.collided_with[idx].value);
-      return true;
+      if (queried_metadata == collision.entry[idx].value ||
+          queried_metadata == collision.collided_with[idx].value) {
+        found_collision = true;
+        break;
+      }
     }
   }
-  return false;
+  return found_collision;
 }
 #endif // REMEMBER_COLLISIONS
 
@@ -193,6 +192,7 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
   for (int i = 0; i < CHOICES; i++) {
     result.idx[i] = hash_of_KEY_TYPE(i, *fingerprint);
   }
+  // FIXME how do we ensure that, for all i and j, result.idx[i] != result.idx[j]
 #ifdef PCHAST_ASSERT
   for (int i = 0; i < CHOICES; i++) {
     assert((int)result.idx[i] >= 0);
@@ -211,6 +211,52 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
 #endif // LOG_INSERTS
+
+#ifdef REMEMBER_COLLISIONS
+
+  // FIXME perhaps could have a race condition, since we lock one choice at a
+  //       time to check with collisions; in the mean time in the other
+  //       choice a colliding entry might have been kicked to the alternative
+  //       choice?
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      if (!t->cell[table_idx].entry[i].clear &&
+          t->cell[table_idx].entry[i].key == fingerprint) {
+        // We judge that a collision has occurred.
+#ifdef PCHAST_ASSERT
+        assert(collision_idx < NUM_COLLIDED_ENTRIES);
+#endif // PCHAST_ASSERT
+        collision.entry[collision_idx].key = fingerprint;
+        collision.entry[collision_idx].value = metadata;
+        collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
+        collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
+#ifdef DESCRIBE_COLLISIONS
+        printf("(%d, %d) collided with (%d, %d) on table_idx=%d, entry=%d\n",
+        collision.entry[collision_idx].key,
+        collision.entry[collision_idx].value,
+        collision.collided_with[collision_idx].key,
+        collision.collided_with[collision_idx].value,
+        table_idx, i);
+#endif // DESCRIBE_COLLISIONS
+        collision_idx += 1;
+      }
+    }
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+  }
+#endif // REMEMBER_COLLISIONS
+
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
 #ifdef MULTITHREADED
@@ -232,28 +278,6 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 #endif // MULTITHREADED
         return OK;
       }
-#ifdef REMEMBER_COLLISIONS
-      else {
-        assert(collision_idx < NUM_COLLIDED_ENTRIES);
-        // FIXME check for collision among the other entries (which might
-        //       have been moved to an alternative bucket).
-        if (t->cell[table_idx].entry[i].key == fingerprint) {
-          collision.entry[collision_idx].key = fingerprint;
-          collision.entry[collision_idx].value = metadata;
-          collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
-          collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
-#ifdef DESCRIBE_COLLISIONS
-          printf("(%d, %d) collided with (%d, %d) on table_idx=%d\n",
-          collision.entry[collision_idx].key,
-          collision.entry[collision_idx].value,
-          collision.collided_with[collision_idx].key,
-          collision.collided_with[collision_idx].value,
-          table_idx);
-#endif // DESCRIBE_COLLISIONS
-          collision_idx += 1;
-        }
-      }
-#endif // REMEMBER_COLLISIONS
     }
 #ifdef MULTITHREADED
     error = pthread_mutex_unlock(&(t->lock[table_idx]));
