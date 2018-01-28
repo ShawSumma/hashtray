@@ -16,6 +16,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 
 #include "pchast.h"
 
+// FIXME ideally hashing functions would be parameters
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
 static KEY_TYPE hash_of_KEY_TYPE(int k, KEY_TYPE data);
 
