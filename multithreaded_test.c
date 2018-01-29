@@ -391,32 +391,47 @@ server_main(void * arg) {
 
       sinfo->host_known += 1;
 
-      if (! sinfo->shutdown) {
-        switch (classification) {
-          case BAD_HOST:
+      assert(USE_PCHAST);
+
+      switch (classification) {
+        case BAD_HOST:
 #ifdef SHOW_PROGRESS
-            printf("!"); fflush(stdout);
+          printf("!"); fflush(stdout);
 #endif // SHOW_PROGRESS
-            break;
-          case GOOD_HOST:
+
+          if (hinfo->is_good) {
+            // Since host turns out to be good, we don't pay a penalty if the
+            // host has been misclassified.
+            sinfo->host_classified_incorrect += 1;
+          } else {
+            sinfo->host_classified_correct += 1;
+          }
+
+          break;
+        case GOOD_HOST:
 #ifdef SHOW_PROGRESS
-            printf("."); fflush(stdout);
+          printf("."); fflush(stdout);
 #endif // SHOW_PROGRESS
-            break;
-          default:
-            assert(0);
-        }
+
+          // We pay a penalty if the host has been misclassified.
+          if (!hinfo->is_good) {
+            delay = (uint32_t)MAX_STALL;
+            sinfo->host_classified_incorrect += 1;
+          } else {
+            sinfo->host_classified_correct += 1;
+          }
+
+          break;
+        default:
+          assert(0);
       }
+
+
+
 
       break;
     case NOT_FOUND:
       sinfo->host_unknown += 1;
-      // FIXME could check for whether this was kicked out.
-      // FIXME here could take the hit, to sleep according to whether host_id
-      //       relates to good or bad. This would reduce the throughput of the
-      //       model according to the amount of host_id's controlled by the
-      //       adversary, and our difficulty classifying them.
-      // FIXME Compare this against not having the classification in place.
 
       if (! hinfo->is_good) {
 #ifdef SHOW_PROGRESS
