@@ -12,10 +12,10 @@ CFLAGS+=" -Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith
     -DMULTITHREADED -lpthread"
 
 libpchast.a: pchast.o
-	ar rcs libpchast.a pchast.o
+	ar rcs $@ $^
 
 pchast.o: pchast.c
-	$CC -c $CFLAGS pchast.c
+	$CC -c $CFLAGS -o $@ $^
 
 .phony clean
 
