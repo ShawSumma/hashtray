@@ -24,6 +24,7 @@ TODO
 #include <unistd.h>
 
 #include "pchast.h"
+#include "pchast_debug.h"
 
 #define TARGET_CORE 0/*FIXME const*/
 
