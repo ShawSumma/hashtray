@@ -3,21 +3,21 @@
 # Nik Sultana, University of Pennsylvania, November 2017
 
 # from https://stackoverflow.com/questions/154630/recommended-gcc-warning-options-for-c
-CFLAGS+=" -Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
+CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
     -Wbad-function-cast -Wstrict-prototypes -Winline -Wundef -Wnested-externs \
     -Wcast-qual -Wshadow -Wwrite-strings -Wconversion -Wunreachable-code \
     -Wstrict-aliasing=2 -fno-common -fstrict-aliasing \
     -std=c99 -pedantic \
     -O3 \
-    -DMULTITHREADED -lpthread"
+    -DMULTITHREADED -lpthread
 
 libpchast.a: pchast.o
 	ar rcs $@ $^
 
 pchast.o: pchast.c
-	$CC -c $CFLAGS -o $@ $^
+	$(CC) -c $(CFLAGS) -o $@ $^
 
-.phony clean
+.PHONY: clean
 
 clean:
 	rm pchast.o libpchast.a
