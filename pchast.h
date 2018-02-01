@@ -7,8 +7,10 @@ Nik Sultana, University of Pennsylvania, November 2017
 #ifndef PCHAST
 #define PCHAST
 
+#include <errno.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <time.h>
 
 #ifdef MULTITHREADED
 #include <pthread.h>
@@ -29,6 +31,11 @@ Nik Sultana, University of Pennsylvania, November 2017
 #define CHOICES 2
 #define MAX_KICKOUTS 500
 
+// If two threads try to lock the same cells in the table then at least one of
+// them will unlock everything and sleep for a random number of microseconds
+// between 0 and BACKOFF_SLEEP_MICROSEC.
+#define BACKOFF_SLEEP_MICROSEC 10
+
 struct entry;
 struct cell;
 struct table;
@@ -42,6 +49,7 @@ enum outcome {OK = 0, /*COLLISION, -- we allow collisions, i.e., confusing the m
 struct table * create_table(void);
 void destroy_table(struct table * t);
 
+// If "insert" finds a k-v mapping for the same key, then it behaves like "update.
 enum outcome insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
 enum outcome delete(struct table * t, DATA_TYPE data);
 enum outcome lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata);

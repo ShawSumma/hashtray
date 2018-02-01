@@ -230,20 +230,38 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
 #endif // LOG_INSERTS
 
-#ifdef REMEMBER_COLLISIONS
+#ifdef MULTITHREADED
+  // We lock both choices at a go, but owing to the sequential nature of
+  // locking we could end up with deadlock, so we give up after a short timeout
+  // and retry, to give the other side the chance to lock.
+  while (true) { // FIXME risk of infinite execution
+    int idx = 0;
+    for (; idx < CHOICES; idx++) {
+      int result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]]));
+      if (EBUSY == result) {
+        // Unlock everything, wait a tiny amount of time and try again.
+        for (int idy = 0; idy < idx; idy++) {
+          int error = pthread_mutex_unlock(&(t->lock[(int)is.idx[idy]]));
+#ifdef PCHAST_ASSERT
+          assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+        }
+        struct timespec req = {.tv_sec = 0, .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
+        struct timespec rem;
+        nanosleep(&req, &rem); // FIXME ignoring return value
+        break;
+      }
+    }
 
-  // FIXME perhaps could have a race condition, since we lock one choice at a
-  //       time to check with collisions; in the mean time in the other
-  //       choice a colliding entry might have been kicked to the alternative
-  //       choice?
+    if (CHOICES == idx) {
+      break;
+    }
+  }
+#endif // MULTITHREADED
+
+#ifdef REMEMBER_COLLISIONS
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (!t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
@@ -266,48 +284,99 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
         collision_idx += 1;
       }
     }
-#ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
   }
 #endif // REMEMBER_COLLISIONS
 
+  // This is the bit that actually does the inserting.
+  // We check both alternatives before updating the table otherwise we could
+  // end up with multiple values for the same key.
+  bool exists = false;
+  int table_idx;
+  int entry_idx;
+  // Keep track of free entries we can insert into.
+  bool found_free_entry = false;
+  int free_table_idx;
+  int free_entry_idx;
   for (int idx = 0; idx < CHOICES; idx++) {
-    int table_idx = (int)is.idx[idx];
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      if (t->cell[table_idx].entry[i].clear) {
-        t->cell[table_idx].entry[i].clear = false;
-        t->cell[table_idx].entry[i].key = fingerprint;
-        t->cell[table_idx].entry[i].value = metadata;
-#ifdef MULTITHREADED
-        error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-        assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-        return OK;
+    table_idx = (int)is.idx[idx];
+    for (entry_idx = 0; entry_idx < NUM_CELL_ENTRIES; entry_idx++) {
+      if (t->cell[table_idx].entry[entry_idx].clear &&
+          !found_free_entry/*Only need one free entry*/) {
+        found_free_entry = true;
+        free_table_idx = table_idx;
+        free_entry_idx = entry_idx;
+      }
+
+      if (!t->cell[table_idx].entry[entry_idx].clear &&
+        (t->cell[table_idx].entry[entry_idx].key == fingerprint)) {
+        exists = true;
+        break;
       }
     }
+
+    if (exists) {
+      break;
+    }
+  }
+
+  if (exists) {
+#ifdef PCHAST_ASSERT
+    assert(!t->cell[table_idx].entry[entry_idx].clear);
+    assert(t->cell[table_idx].entry[entry_idx].key == fingerprint);
+#endif // PCHAST_ASSERT
+    t->cell[table_idx].entry[entry_idx].value = metadata;
+  } else if (found_free_entry) {
+    t->cell[free_table_idx].entry[free_entry_idx].clear = false;
+    t->cell[free_table_idx].entry[free_entry_idx].key = fingerprint;
+    t->cell[free_table_idx].entry[free_entry_idx].value = metadata;
+  }
+
+  if (exists || found_free_entry) {
+    // We can unlock everything and return.
 #ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    for (int idx = 0; idx < CHOICES; idx++) {
+      int tbl_idx = (int)is.idx[idx];
+      int error = pthread_mutex_unlock(&(t->lock[tbl_idx]));
+#ifdef PCHAST_ASSERT
+      assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+    }
+#endif // MULTITHREADED
+    return OK;
+  }
+
+  // At this point we haven't been able to make the insertion, since both cells
+  // were already full.
+#ifdef FAIL_EAGERLY
+  // Unlock everything and give up.
+#ifdef MULTITHREADED
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
     assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
-#endif // MULTITHREADED
   }
-#ifdef FAIL_EAGERLY
+#endif // MULTITHREADED
+
   return BLOCKS_FULL;
-#else
-  int table_idx = (int)is.idx[(int)rand() % CHOICES];
+#else // ndef FAIL_EAGERLY
+
+  table_idx = (int)is.idx[(int)rand() % CHOICES];
+
+#ifdef MULTITHREADED
+  // We're going to have to kick stuff out. We unlock all except the cell we
+  // choose _not_ to kick stuff out of and continue.
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int other_table_idx = (int)is.idx[idx];
+    if (table_idx != other_table_idx) {
+      int error = pthread_mutex_unlock(&(t->lock[other_table_idx]));
+#ifdef PCHAST_ASSERT
+      assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+    }
+  }
+#endif // MULTITHREADED
 
   KEY_TYPE swapped_key;
   VALUE_TYPE swapped_value;
@@ -321,21 +390,20 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     //       over-reporting collisions, e.g., if 2 entries get kicked
     //       down a similar path, it might be counted as multiple collisions
     //       rather than a single one.
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+
     swapped_key = t->cell[table_idx].entry[entry].key;
     swapped_value = t->cell[table_idx].entry[entry].value;
+    // t->cell[table_idx] is already locked at this point, so we can update it
+    // safely.
     t->cell[table_idx].entry[entry].key = fingerprint;
     t->cell[table_idx].entry[entry].value = metadata;
 
+    // This won't be true the first time we go through this loop, since we
+    // wouldn't have entered the "kick out" phase if there were empty cells.
     if (t->cell[table_idx].entry[entry].clear) {
       t->cell[table_idx].entry[entry].clear = false;
 #ifdef MULTITHREADED
-      error = pthread_mutex_unlock(&(t->lock[table_idx]));
+      int error = pthread_mutex_unlock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
       assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
@@ -348,7 +416,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     fingerprint = swapped_key;
     metadata = swapped_value;
 #ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
     assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
@@ -359,7 +427,16 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
    //      attempt to kick it, rather than the current fingerprint; but it's
    //      not obvious which to pick, so the current approach feels simplest.
     table_idx = (int)alt_idx((KEY_TYPE)table_idx, fingerprint);
+#ifdef MULTITHREADED
+    error = pthread_mutex_lock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
   }
+
+  // If we reached this point then we exceeded MAX_KICKOUTS. We're giving up
+  // with the propagation.
 #ifdef REMEMBER_LOSS
   assert(overfill_idx < NUM_OVERFILL_ENTRIES);
   // Record which items got kicked out of the table.
