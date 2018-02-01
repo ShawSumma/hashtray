@@ -220,17 +220,11 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
   return result;
 }
 
-enum outcome
-insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
-{
-  KEY_TYPE fingerprint;
-  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-#ifdef LOG_INSERTS
-  printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
-      data, metadata, fingerprint, is.idx[0], is.idx[1]);
-#endif // LOG_INSERTS
-
-#ifdef MULTITHREADED
+static inline void
+lock_indices(struct table * t, struct idxs is) {
+#ifndef MULTITHREADED
+  // Do nothing
+#else // MULTITHREADED is defined
   // We lock both choices at a go, but owing to the sequential nature of
   // locking we could end up with deadlock, so we give up after a short timeout
   // and retry, to give the other side the chance to lock.
@@ -259,6 +253,38 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
     }
   }
 #endif // MULTITHREADED
+}
+
+static inline void
+unlock_indices_except(struct table * t, struct idxs is, int * opt_dont_unlock) {
+#ifndef MULTITHREADED
+  // Do nothing
+#else // MULTITHREADED is defined
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+    if (NULL == opt_dont_unlock ||
+        (NULL != opt_dont_unlock &&
+         *opt_dont_unlock != table_idx)) {
+      int error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+      assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+    }
+  }
+#endif // MULTITHREADED
+}
+
+enum outcome
+insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
+{
+  KEY_TYPE fingerprint;
+  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+#ifdef LOG_INSERTS
+  printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
+      data, metadata, fingerprint, is.idx[0], is.idx[1]);
+#endif // LOG_INSERTS
+
+  lock_indices(t, is);
 
 #ifdef REMEMBER_COLLISIONS
   for (int idx = 0; idx < CHOICES; idx++) {
@@ -334,15 +360,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 
   if (exists || found_free_entry) {
     // We can unlock everything and return.
-#ifdef MULTITHREADED
-    for (int idx = 0; idx < CHOICES; idx++) {
-      int tbl_idx = (int)is.idx[idx];
-      int error = pthread_mutex_unlock(&(t->lock[tbl_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-    }
-#endif // MULTITHREADED
+    unlock_indices_except(t, is, NULL);
     return OK;
   }
 
@@ -350,34 +368,16 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   // were already full.
 #ifdef FAIL_EAGERLY
   // Unlock everything and give up.
-#ifdef MULTITHREADED
-  for (int idx = 0; idx < CHOICES; idx++) {
-    int table_idx = (int)is.idx[idx];
-    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-  }
-#endif // MULTITHREADED
+  unlock_indices_except(t, is, NULL);
 
   return BLOCKS_FULL;
 #else // ndef FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
 
-#ifdef MULTITHREADED
   // We're going to have to kick stuff out. We unlock all except the cell we
   // choose _not_ to kick stuff out of and continue.
-  for (int idx = 0; idx < CHOICES; idx++) {
-    int other_table_idx = (int)is.idx[idx];
-    if (table_idx != other_table_idx) {
-      int error = pthread_mutex_unlock(&(t->lock[other_table_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-    }
-  }
-#endif // MULTITHREADED
+  unlock_indices_except(t, is, &table_idx);
 
   KEY_TYPE swapped_key;
   VALUE_TYPE swapped_value;
