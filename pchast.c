@@ -139,7 +139,7 @@ const char * outcome_str[] =
 KEY_TYPE
 hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
-  KEY_TYPE hash = data + (data * (KEY_TYPE)k) + (KEY_TYPE)k;
+  int hash = data + (data * k) + k;
 
   // NOTE based on http://www.azillionmonkeys.com/qed/hash.html
   hash ^= hash << (3 + k);
@@ -148,7 +148,7 @@ hash_of_KEY_TYPE(int k, KEY_TYPE data)
   hash += hash >> (17 - k);
   hash += hash << 6;
 
-  return hash % TABLE_SIZE;
+  return (KEY_TYPE)(hash % TABLE_SIZE);
 }
 
 uint16_t
