@@ -36,8 +36,6 @@ Nik Sultana, University of Pennsylvania, November 2017
 // between 0 and BACKOFF_SLEEP_MICROSEC.
 #define BACKOFF_SLEEP_MICROSEC 10
 
-struct entry;
-struct cell;
 struct table;
 
 int rand_range(int min, int max);
