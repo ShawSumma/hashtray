@@ -430,6 +430,42 @@ lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
   return NOT_FOUND;
 }
 
+enum outcome
+update(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
+{
+  KEY_TYPE fingerprint;
+  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
+      if (! t->cell[table_idx].entry[i].clear &&
+          t->cell[table_idx].entry[i].key == fingerprint) {
+        t->cell[table_idx].entry[i].value = metadata;
+#ifdef MULTITHREADED
+        error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+        assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+        return OK;
+      }
+    }
+#ifdef MULTITHREADED
+    error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+  }
+  return NOT_FOUND;
+}
+
 struct table *
 create_table(void)
 {

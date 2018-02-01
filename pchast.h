@@ -54,6 +54,8 @@ void destroy_table(struct table * t);
 enum outcome insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
 enum outcome delete(struct table * t, DATA_TYPE data);
 enum outcome lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata);
+enum outcome update(struct table * t, DATA_TYPE data, DATA_TYPE metadata);
+
 
 extern const char * outcome_str[];
 #define PRINT_OUTCOME(o) { \
