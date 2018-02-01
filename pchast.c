@@ -148,14 +148,22 @@ const char * outcome_str[] =
 KEY_TYPE
 hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
+/* FIXME old
   int hash = data + (data * k) + k;
-
   // NOTE based on http://www.azillionmonkeys.com/qed/hash.html
   hash ^= hash << (3 + k);
   hash += hash >> 5;
   hash ^= hash << 4;
   hash += hash >> (17 - k);
   hash += hash << 6;
+*/
+
+  // NOTE based on djb2 at: http://www.cse.yorku.ca/~oz/hash.html
+  long long hash = 5381 * k + k;
+  char * buf = (char *)&data;
+  for (unsigned i = 0; i < sizeof(DATA_TYPE); i++) {
+    hash = hash * 33 ^ buf[i];
+  }
 
   return (KEY_TYPE)(hash % TABLE_SIZE);
 }
