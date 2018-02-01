@@ -246,7 +246,8 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
           assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
         }
-        struct timespec req = {.tv_sec = 0, .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
+        struct timespec req = {.tv_sec = 0,
+          .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
         struct timespec rem;
         nanosleep(&req, &rem); // FIXME ignoring return value
         break;
