@@ -415,8 +415,12 @@ main()
   printf("\n");
 
   // We can clear these out before the next test.
+#ifdef REMEMBER_LOSS
   reset_overfill();
+#endif // REMEMBER_LOSS
+#ifdef REMEMBER_COLLISIONS
   reset_collision();
+#endif // REMEMBER_COLLISIONS
 
   // Test 4: mix lookups and inserts
   // Execute lookup again based on test data, and time it.
