@@ -16,7 +16,7 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
     -Wstrict-aliasing=2 -fno-common -fstrict-aliasing \
     -std=c99 -pedantic \
     $(DEBUGGING) \
-    -DMULTITHREADED -lpthread
+    -DMULTITHREADED
 
 libpchast.a: pchast.o
 	ar rcs $@ $^
@@ -30,7 +30,7 @@ pchast_test: main.o pchast.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 pchast_multithreaded: multithreaded_test.o pchast.o
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $^ -lpthread -o $@
 
 tests: pchast_test pchast_multithreaded
 
