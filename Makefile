@@ -22,17 +22,17 @@ libpchast.a: pchast.o
 	ar rcs $@ $^
 
 %.o : %.c
-	$(CC) -c $(CFLAGS) -o $@ $^
+	$(CC) -c $(CFLAGS) $^ -o $@
 
 .PHONY: clean tests
 
 pchast_test: main.o pchast.o
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) $^ -o $@
 
-pchast_multithread: multithreaded_test.o pchast.o
-	$(CC) $(CFLAGS) -o $@ $^
+pchast_multithreaded: multithreaded_test.o pchast.o
+	$(CC) $(CFLAGS) $^ -o $@
 
-tests: pchast_test pchast_multithread
+tests: pchast_test pchast_multithreaded
 
 clean:
-	rm main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithread
+	rm -f main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithreaded
