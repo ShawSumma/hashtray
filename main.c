@@ -45,16 +45,26 @@ cool_cache(void)
 void
 simple_test(DATA_TYPE data, DATA_TYPE metadata)
 {
-  printf("simple_test: create table, insert data, query for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
+  printf("simple_test: create table, query for a piece of data, insert data, query for that data, reinsert(update) data, requery for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
   struct table * my_tab = create_table();
   enum outcome o;
+  DATA_TYPE queried_metadata = 0;
+  o = lookup(my_tab, data, &queried_metadata);
+  assert(NOT_FOUND == o);
+
   o = insert(my_tab, data, metadata);
   assert(OK == o);
 
-  DATA_TYPE queried_metadata = 0;
   o = lookup(my_tab, data, &queried_metadata);
   assert(OK == o);
   assert(queried_metadata == metadata);
+
+  o = insert(my_tab, data, metadata + 1);
+  assert(OK == o);
+
+  o = lookup(my_tab, data, &queried_metadata);
+  assert(OK == o);
+  assert(queried_metadata == (metadata + 1));
 
   o = delete(my_tab, data);
   assert(OK == o);
