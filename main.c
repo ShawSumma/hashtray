@@ -399,18 +399,18 @@ main()
   printf("\n");
 
   // Test 2: How long insertion takes
-  // (We can set a compilation directive to pchast record hash collisions,
-  //  including if the same randomly-generate value is generated twice.)
+  // (We can set a compilation directive to pchast record hash collisions)
+  // (We generate the data by enumeration, not randomisation, so we shouldn't try to insert the same item twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
   struct table * my_tab = create_table();
-  printf("Insertion test (of random data) into an empty table.\n");
+  printf("Insertion test (of unique data items) into an empty table.\n");
   struct test_data * test_dataset = insert_test(my_tab);
   printf("\n");
 
   // Test 3: How long a lookup takes when the item's expected to be found.
   // Execute lookup again based on test data, and time it.
-  printf("Lookup test (of random data) on a table in which the data was previously inserted.\n");
+  printf("Lookup test (of previously-generated data) on a table in which the data was previously inserted.\n");
   lookup_test(test_dataset, my_tab);
   printf("\n");
 
