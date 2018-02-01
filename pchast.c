@@ -456,109 +456,85 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 enum outcome
 delete(struct table * t, DATA_TYPE data)
 {
+  enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  lock_indices(t, is);
+
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].clear = true;
-#ifdef MULTITHREADED
-        error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-        assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-        return OK;
+        result = OK;
+        break;
       }
     }
-#ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+
+    if (OK == result) {
+      break;
+    }
   }
-  return NOT_FOUND;
+
+  unlock_indices_except(t, is, NULL);
+  return result;
 }
 
 enum outcome
 lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
 {
+  enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  lock_indices(t, is);
+
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         *metadata = t->cell[table_idx].entry[i].value;
-#ifdef MULTITHREADED
-        error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-        assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-        return OK;
+        result = OK;
+        break;
       }
     }
-#ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+
+    if (OK == result) {
+      break;
+    }
   }
-  return NOT_FOUND;
+
+  unlock_indices_except(t, is, NULL);
+  return result;
 }
 
 enum outcome
 update(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 {
+  enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
+  lock_indices(t, is);
+
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
-#ifdef MULTITHREADED
-    int error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].value = metadata;
-#ifdef MULTITHREADED
-        error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-        assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-        return OK;
+        result = OK;
+        break;
       }
     }
-#ifdef MULTITHREADED
-    error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+
+    if (OK == result) {
+      break;
+    }
   }
-  return NOT_FOUND;
+
+  unlock_indices_except(t, is, NULL);
+  return result;
 }
 
 struct table *
