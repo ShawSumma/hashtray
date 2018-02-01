@@ -23,6 +23,8 @@ struct idxs {
 static KEY_TYPE alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint);
 static struct idxs idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint);
 
+static KEY_TYPE fingerprint_of_DATA_TYPE(DATA_TYPE data);
+
 // FIXME ideally hashing functions would be parameters
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
 static KEY_TYPE hash_of_KEY_TYPE(int k, KEY_TYPE data);

@@ -35,8 +35,6 @@ struct table;
 
 int rand_range(int min, int max);
 
-KEY_TYPE fingerprint_of_DATA_TYPE(DATA_TYPE data);
-
 enum outcome {OK = 0, /*COLLISION, -- we allow collisions, i.e., confusing the metadata of data that happen to have the same fingerprint. This saves time when inserting, since it avoids having to look at all the entries in both buckets. Incidentally, this also means that we allow duplicate fingerprints being stored -- so maybe should revisit this.*/
   NOT_FOUND, GAVE_UP, BLOCKS_FULL,
   END_MARKER};
