@@ -206,7 +206,7 @@ generate_hosts(void) {
     // Ensure the id is unique.
     int iterations = MAX_ITERATIONS;
     for (; iterations > 0; iterations--) {
-      host_info[i].id = (VALUE_TYPE)rand_range(0, RAND_MAX);
+      host_info[i].id = (VALUE_TYPE)PCH(rand_range)(0, RAND_MAX);
       bool duplicate = false;
       for (int j = 0; j < i; j++) {
         if (host_info[i].id == host_info[j].id) {
@@ -222,7 +222,7 @@ generate_hosts(void) {
 
     host_info[i].current_num_connections = 0;
 
-    int goodness = rand_range(1, 100);
+    int goodness = PCH(rand_range)(1, 100);
     host_info[i].is_good = (goodness <= PERCENTAGE_GOOD_HOSTS);
 
     error = pthread_mutex_init(&(host_info[i].lock), NULL);
@@ -257,11 +257,11 @@ pick_host(void) {
   int idx;
   int iterations = MAX_ITERATIONS;
   for (; iterations > 0; iterations--) {
-    idx = rand_range(0, NUM_HOSTS - 1);
+    idx = PCH(rand_range)(0, NUM_HOSTS - 1);
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
       if (host_info[idx].current_num_connections < MAX_CONNS) {
-        bool conn_should_be_good = (rand_range(1, 100) <= PERCENTAGE_GOOD_CONNECTION);
+        bool conn_should_be_good = (PCH(rand_range)(1, 100) <= PERCENTAGE_GOOD_CONNECTION);
         if (conn_should_be_good == host_info[idx].is_good) {
           break;
         }
@@ -343,7 +343,7 @@ server_main(void * arg) {
 
   enum outcome o;
   while (! sinfo->shutdown) {
-    sleep((uint32_t)rand_range(0, MAX_SLEEP));
+    sleep((uint32_t)PCH(rand_range)(0, MAX_SLEEP));
 
 #ifdef SIM_DURATION_IN_CONNECTIONS
     error = pthread_mutex_lock(&connections_countdown_lock);
@@ -380,7 +380,7 @@ server_main(void * arg) {
 
     VALUE_TYPE classification = (VALUE_TYPE)(-1);
     if (USE_PCHAST) {
-      o = lookup(tbl, hinfo->id, &classification); // FIXME could time this.
+      o = PCH(lookup)(tbl, hinfo->id, &classification); // FIXME could time this.
     } else {
       o = NOT_FOUND;
     }
@@ -438,13 +438,13 @@ server_main(void * arg) {
         printf("-"); fflush(stdout);
 #endif // SHOW_PROGRESS
         classification = BAD_HOST;
-        delay = (uint32_t)rand_range(MIN_STALL, MAX_STALL);
+        delay = (uint32_t)PCH(rand_range)(MIN_STALL, MAX_STALL);
       } else {
 #ifdef SHOW_PROGRESS
         printf("+"); fflush(stdout);
 #endif // SHOW_PROGRESS
 #ifndef PERFECT_GOOD
-        delay = (uint32_t)rand_range(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
+        delay = (uint32_t)PCH(rand_range)(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
 #endif // PERFECT_GOOD
         classification = GOOD_HOST;
       }
@@ -469,7 +469,7 @@ server_main(void * arg) {
         }
 #endif // USE_PERFECT_CLASSIFIER
 
-        o = insert(tbl, hinfo->id, classification); // FIXME could time this.
+        o = PCH(insert)(tbl, hinfo->id, classification); // FIXME could time this.
       }
 
       // FIXME could also model reclassification at some sampling rate, to
@@ -618,10 +618,10 @@ main(int argc, char * argv[])
   print_host_info(false);
 #endif // VERBOSE
 
-  tbl = create_table();
+  tbl = PCH(create_table)();
 
   for (int i = 0; i < NUM_SERVERS; i++) {
-    server_info[i].seed = rand_range(0, INT_MAX);
+    server_info[i].seed = PCH(rand_range)(0, INT_MAX);
     server_info[i].shutdown = false;
     server_info[i].idx = (uint8_t)i;
     error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
@@ -635,7 +635,7 @@ main(int argc, char * argv[])
     pthread_join(tid[i], NULL);
   }
 
-  destroy_table(tbl);
+  PCH(destroy_table)(tbl);
   shutdown_hosts();
 
 #ifdef SIM_DURATION_IN_CONNECTIONS

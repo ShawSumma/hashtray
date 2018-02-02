@@ -54,35 +54,35 @@ void
 simple_test(DATA_TYPE data, DATA_TYPE metadata)
 {
   printf("simple_test: create table, query for a piece of data, insert data, query for that data, reinsert(update) data, requery for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
-  struct table * my_tab = create_table();
+  struct table * my_tab = PCH(create_table)();
   enum outcome o;
   DATA_TYPE queried_metadata = 0;
-  o = lookup(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(NOT_FOUND == o);
 
-  o = insert(my_tab, data, metadata);
+  o = PCH(insert)(my_tab, data, metadata);
   assert(OK == o);
 
-  o = lookup(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(OK == o);
   assert(queried_metadata == metadata);
 
-  o = insert(my_tab, data, metadata + 1);
+  o = PCH(insert)(my_tab, data, metadata + 1);
   assert(OK == o);
 
-  o = lookup(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(OK == o);
   assert(queried_metadata == (metadata + 1));
 
-  o = delete(my_tab, data);
+  o = PCH(delete)(my_tab, data);
   assert(OK == o);
 
-  o = delete(my_tab, data);
+  o = PCH(delete)(my_tab, data);
   assert(NOT_FOUND == o);
-  o = lookup(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(NOT_FOUND == o);
 
-  destroy_table(my_tab);
+  PCH(destroy_table)(my_tab);
 }
 
 // Based on https://stackoverflow.com/questions/14783782/which-inline-assembly-code-is-correct-for-rdtscp#14783909
@@ -119,7 +119,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 
   bool temporary_table = false;
   if (NULL == test_table) {
-    test_table = create_table();
+    test_table = PCH(create_table)();
     temporary_table = true;
   }
 
@@ -135,7 +135,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = (DATA_TYPE)rand_range(0, INT_MAX);
+      data = (DATA_TYPE)PCH(rand_range)(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -144,7 +144,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = lookup(test_table, data, &queried_metadata);
+    o = PCH(lookup)(test_table, data, &queried_metadata);
     uint64_t two = rdtscp(&aux);
 
 #if 0
@@ -183,7 +183,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
   }
 
   if (temporary_table) {
-    destroy_table(test_table);
+    PCH(destroy_table)(test_table);
   }
 
   printf("lookup_test min / average / max duration: %llu / %llu / %llu ticks\n",
@@ -238,7 +238,7 @@ insert_test(struct table * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = insert(test_table, result[i].datum, result[i].metadatum);
+    o = PCH(insert)(test_table, result[i].datum, result[i].metadatum);
     uint64_t two = rdtscp(&aux);
 #if 0
     PRINT_OUTCOME(o);
@@ -292,11 +292,11 @@ mix_insert_lookup_test(void)
 
   enum {INSERT = 0, INSERT_AND_LOOKUP = 1, LOOKUP = 2} state;
 
-  struct table * test_table = create_table();
+  struct table * test_table = PCH(create_table)();
   enum outcome o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    switch (rand_range(INSERT, LOOKUP)) {
+    switch (PCH(rand_range)(INSERT, LOOKUP)) {
       case 0:
         state = INSERT;
         break;
@@ -310,8 +310,8 @@ mix_insert_lookup_test(void)
         assert(0);
     }
 
-    DATA_TYPE data = (DATA_TYPE)rand_range(0, INT_MAX);
-    VALUE_TYPE queried_metadata = (VALUE_TYPE)rand_range(0, INT_MAX);
+    DATA_TYPE data = (DATA_TYPE)PCH(rand_range)(0, INT_MAX);
+    VALUE_TYPE queried_metadata = (VALUE_TYPE)PCH(rand_range)(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -324,7 +324,7 @@ mix_insert_lookup_test(void)
     switch (state) {
     case INSERT:
       one = rdtscp(&aux);
-      o = insert(test_table, data, queried_metadata);
+      o = PCH(insert)(test_table, data, queried_metadata);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
@@ -336,9 +336,9 @@ mix_insert_lookup_test(void)
       break;
 
     case INSERT_AND_LOOKUP:
-      (void)insert(test_table, data, queried_metadata);
+      (void)PCH(insert)(test_table, data, queried_metadata);
       one = rdtscp(&aux);
-      o = lookup(test_table, data, &queried_metadata);
+      o = PCH(lookup)(test_table, data, &queried_metadata);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
@@ -350,7 +350,7 @@ mix_insert_lookup_test(void)
 
     case LOOKUP:
       one = rdtscp(&aux);
-      o = lookup(test_table, data, &queried_metadata);
+      o = PCH(lookup)(test_table, data, &queried_metadata);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
@@ -365,7 +365,7 @@ mix_insert_lookup_test(void)
     }
   }
 
-  destroy_table(test_table);
+  PCH(destroy_table)(test_table);
 
   printf("mix_insert_lookup_test:INSERT min / average / max duration: %llu / %llu / %llu ticks\n",
       min_insert, average_insert, max_insert);
@@ -415,7 +415,7 @@ main()
   // (We generate the data by enumeration, not randomisation, so we shouldn't try to insert the same item twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
-  struct table * my_tab = create_table();
+  struct table * my_tab = PCH(create_table)();
   printf("Insertion test (of unique data items) into an empty table.\n");
   struct test_data * test_dataset = insert_test(my_tab);
   printf("\n");
@@ -440,7 +440,7 @@ main()
   mix_insert_lookup_test();
   printf("\n");
 
-  destroy_table(my_tab);
+  PCH(destroy_table)(my_tab);
   free(test_dataset);
 
   printf("done\n");

@@ -63,7 +63,7 @@ struct cell {
   struct entry entry[NUM_CELL_ENTRIES];
 };
 
-struct table {
+struct PCH(table) {
   struct cell cell[TABLE_SIZE];
 #ifdef MULTITHREADED
   pthread_mutex_t lock[TABLE_SIZE];
@@ -235,7 +235,7 @@ idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
 }
 
 static inline void
-lock_indices(struct table * t, struct idxs is) {
+lock_indices(struct PCH(table) * t, struct idxs is) {
 #ifndef MULTITHREADED
   // Do nothing
 #else // MULTITHREADED is defined
@@ -270,7 +270,7 @@ lock_indices(struct table * t, struct idxs is) {
 }
 
 static inline void
-unlock_indices_except(struct table * t, struct idxs is, int * opt_dont_unlock) {
+unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlock) {
 #ifndef MULTITHREADED
   // Do nothing
 #else // MULTITHREADED is defined
@@ -289,7 +289,7 @@ unlock_indices_except(struct table * t, struct idxs is, int * opt_dont_unlock) {
 }
 
 enum outcome
-insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
+PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 {
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
@@ -468,7 +468,7 @@ insert(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
 }
 
 enum outcome
-delete(struct table * t, DATA_TYPE data)
+PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
 {
   enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
@@ -496,7 +496,7 @@ delete(struct table * t, DATA_TYPE data)
 }
 
 enum outcome
-lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
+PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
 {
   enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
@@ -524,7 +524,7 @@ lookup(struct table * t, DATA_TYPE data, DATA_TYPE * metadata)
 }
 
 enum outcome
-update(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
+PCH(update)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 {
   enum outcome result = NOT_FOUND;
   KEY_TYPE fingerprint;
@@ -551,10 +551,10 @@ update(struct table * t, DATA_TYPE data, DATA_TYPE metadata)
   return result;
 }
 
-struct table *
-create_table(void)
+struct PCH(table) *
+PCH(create_table)(void)
 {
-  struct table * t = malloc(sizeof(*t));
+  struct PCH(table) * t = malloc(sizeof(*t));
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       t->cell[table_idx].entry[i].clear = true;
@@ -570,7 +570,7 @@ create_table(void)
 }
 
 void
-destroy_table(struct table * t)
+PCH(destroy_table)(struct PCH(table) * t)
 {
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
 #ifdef MULTITHREADED
@@ -584,7 +584,7 @@ destroy_table(struct table * t)
 }
 
 int
-rand_range(int min, int max)
+PCH(rand_range)(int min, int max)
 {
 #ifdef PCHAST_ASSERT
   assert(min >= 0);

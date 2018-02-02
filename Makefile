@@ -17,19 +17,13 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
     -std=c99 -pedantic \
     $(DEBUGGING)
 
-libpchast.a: pchast.o
+libpchast.a: pchast_M100.o pchast_S1000.o
 	ar rcs $@ $^
 
-pchast_M100.h : pchast.h pchast_M100_config.h
-	$(CC) -include pchast_M100_config.h $(CFLAGS) -E pchast.h -o $@
-
-pchast_S1000.h : pchast.h pchast_S1000_config.h
-	$(CC) -include pchast_S1000_config.h $(CFLAGS) -E pchast.h -o $@
-
-pchast_M100.o : pchast_M100.h pchast.c
+pchast_M100.o : pchast.c
 	$(CC) -include pchast_M100_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@
 
-pchast_S1000.o : pchast_S1000.h pchast.c
+pchast_S1000.o : pchast.c
 	$(CC) -include pchast_S1000_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@
 
 main.o : main.c pchast_S1000.o pchast.h pchast_S1000_config.h
