@@ -21,18 +21,37 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
 libpchast.a: pchast.o
 	ar rcs $@ $^
 
-%.o : %.c
-	$(CC) -c $(CFLAGS) $^ -o $@
+pchast_M100.h : pchast.h pchast_M100_config.h
+	$(CC) -include pchast_M100_config.h $(CFLAGS) -E pchast.h -o $@
+
+pchast_S10000.h : pchast.h pchast_S10000_config.h
+	$(CC) -include pchast_S10000_config.h $(CFLAGS) -E pchast.h -o $@
+
+pchast_M100.o : pchast_M100.h pchast.c
+	$(CC) -include pchast_M100_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@
+
+pchast_S10000.o : pchast_S10000.h pchast.c
+	$(CC) -include pchast_S10000_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@
+
+main.o : main.c pchast_S10000.o pchast.h pchast_S10000_config.h
+	$(CC) -include pchast_S10000_config.h $(CFLAGS) -c main.c -o $@
+
+multithreaded_test.o : multithreaded_test.c pchast_M100.o pchast.h pchast_M100_config.h
+	$(CC) -include pchast_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
+#	$(CC) -include pchast_M100_config.h $(CFLAGS) -c $^ -o $@
 
 .PHONY: clean tests
 
-pchast_test: main.o pchast.o
-	$(CC) $(CFLAGS) $^ -o $@
+#pchast_test: main.o pchast_S10000.o
+#	$(CC) $(CFLAGS) $^ -o $@
+pchast_test: main.o pchast_S10000.o pchast.h pchast_S10000_config.h
+	$(CC) -include pchast_S10000_config.h -include pchast.h $(CFLAGS) -lpthread main.o pchast_S10000.o -o $@
 
-pchast_multithreaded: multithreaded_test.o pchast.o
-	$(CC) $(CFLAGS) $^ -lpthread -o $@
+#pchast_multithreaded: multithreaded_test.o pchast_M100.o pchast.h pchast_M100_config.h
+pchast_multithreaded: multithreaded_test.o pchast_M100.o pchast.h pchast_M100_config.h
+	$(CC) -include pchast_M100_config.h -include pchast.h $(CFLAGS) -lpthread multithreaded_test.o pchast_M100.o -o $@
 
 tests: pchast_test pchast_multithreaded
 
 clean:
-	rm -f main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithreaded
+	rm -f main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithreaded pchast_M100.o pchast_M100.h pchast_S10000.o pchast_S10000.h
