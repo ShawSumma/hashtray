@@ -6,7 +6,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #include <stdint.h>
 
-#define TABLE_SIZE 10000
+#define TABLE_SIZE 1000
 
 #define NUM_CELL_ENTRIES 4
 #define KEY_TYPE uint16_t

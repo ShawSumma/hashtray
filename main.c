@@ -27,6 +27,12 @@ TODO
 #include "pchast.h"
 #include "pchast_debug.h"
 
+#define TEST_DATASET_SIZE 5000
+struct test_data {
+  DATA_TYPE datum;
+  VALUE_TYPE metadatum;
+};
+
 #define TARGET_CORE 0/*FIXME const*/
 
 #define COOL_THE_CACHE 0
@@ -86,12 +92,6 @@ static inline uint64_t rdtscp(uint32_t * aux)
     __asm volatile ( "rdtscp\n" : "=a" (rax), "=d" (rdx), "=c" (aux) : : );
     return (rdx << 32) + rax;
 }
-
-#define TEST_DATASET_SIZE 50000
-struct test_data {
-  DATA_TYPE datum;
-  VALUE_TYPE metadatum;
-};
 
 static inline void
 update_stats(int iteration, uint64_t time_before, uint64_t time_after,
