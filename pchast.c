@@ -12,6 +12,21 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #ifdef PCHAST_ASSERT
 #include <assert.h>
 #endif // PCHAST_ASSERT
+
+#ifdef REMEMBER_COLLISIONS
+#include <assert.h>
+#include "stdio.h"
+#endif // REMEMBER_COLLISIONS
+
+#ifdef LOG_INSERTS
+#include <stdio.h>
+#endif // LOG_INSERTS
+
+#ifdef REMEMBER_LOSS
+#include <assert.h>
+#include "stdio.h"
+#endif // REMEMBER_LOSS
+
 #include <stdlib.h>
 
 #include "pchast.h"
@@ -46,19 +61,12 @@ struct table {
 #endif // MULTITHREADED
 };
 
-#ifdef LOG_INSERTS
-#include <stdio.h>
-#endif // LOG_INSERTS
-
 #ifdef REMEMBER_LOSS
-#include <assert.h>
-#include "stdio.h"
-
 struct overfill_t {
   struct entry entry[NUM_OVERFILL_ENTRIES];
 } overfill;
 
-int overfill_idx = 0;
+static int overfill_idx = 0;
 
 void
 print_overfill(bool show_entries)
@@ -94,9 +102,6 @@ has_overflowed(DATA_TYPE data) {
 #endif // REMEMBER_LOSS
 
 #ifdef REMEMBER_COLLISIONS
-#include <assert.h>
-#include "stdio.h"
-
 struct collision_t {
   struct entry entry[NUM_COLLIDED_ENTRIES];
   struct entry collided_with[NUM_COLLIDED_ENTRIES];
@@ -145,7 +150,7 @@ has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
 const char * outcome_str[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-KEY_TYPE
+static KEY_TYPE
 hash_of_KEY_TYPE(int k, KEY_TYPE data)
 {
 /* FIXME old
@@ -168,7 +173,7 @@ hash_of_KEY_TYPE(int k, KEY_TYPE data)
   return (KEY_TYPE)(hash % TABLE_SIZE);
 }
 
-uint16_t
+static uint16_t
 hash_of_uint32_to_uint16(uint32_t data)
 {
   union {
@@ -180,13 +185,13 @@ hash_of_uint32_to_uint16(uint32_t data)
     hash_of_KEY_TYPE(1, conversion.as_uint16_t[1]);
 }
 
-KEY_TYPE
+static KEY_TYPE
 fingerprint_of_DATA_TYPE(DATA_TYPE data)
 {
   return hash_of_uint32_to_uint16(data);
 }
 
-KEY_TYPE
+static KEY_TYPE
 alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
 {
   // FIXME assuming CHOICE==2
