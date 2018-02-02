@@ -25,3 +25,5 @@ Nik Sultana, University of Pennsylvania, November 2017
 // them will unlock everything and sleep for a random number of microseconds
 // between 0 and BACKOFF_SLEEP_MICROSEC.
 #define BACKOFF_SLEEP_MICROSEC 10
+
+#define MULTITHREADED
