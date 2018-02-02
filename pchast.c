@@ -27,7 +27,14 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include "stdio.h"
 #endif // REMEMBER_LOSS
 
+#ifdef MULTITHREADED
+#include <pthread.h>
+#endif // MULTITHREADED
+
+#include <errno.h>
+#include <stdbool.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "pchast.h"
 

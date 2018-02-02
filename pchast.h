@@ -7,14 +7,7 @@ Nik Sultana, University of Pennsylvania, November 2017
 #ifndef PCHAST
 #define PCHAST
 
-#include <errno.h>
-#include <stdbool.h>
 #include <stdint.h>
-#include <time.h>
-
-#ifdef MULTITHREADED
-#include <pthread.h>
-#endif // MULTITHREADED
 
 // NOTE keysize needs to be bigger to occupy a larger table size. Initially
 //      KEY_TYPE==uint8_t, which allows us to address 256 cells, each with
