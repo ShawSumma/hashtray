@@ -341,7 +341,7 @@ server_main(void * arg) {
 
   int error;
 
-  enum outcome o;
+  enum PCH(outcome) o;
   while (! sinfo->shutdown) {
     sleep((uint32_t)PCH(rand_range)(0, MAX_SLEEP));
 
@@ -382,11 +382,11 @@ server_main(void * arg) {
     if (USE_PCHAST) {
       o = PCH(lookup)(tbl, hinfo->id, &classification); // FIXME could time this.
     } else {
-      o = NOT_FOUND;
+      o = PCH(NOT_FOUND);
     }
 
     switch (o) {
-    case OK:
+    case PCH(OK):
       // FIXME could check for collision.
 
       sinfo->host_known += 1;
@@ -430,7 +430,7 @@ server_main(void * arg) {
 
 
       break;
-    case NOT_FOUND:
+    case PCH(NOT_FOUND):
       sinfo->host_unknown += 1;
 
       if (! hinfo->is_good) {

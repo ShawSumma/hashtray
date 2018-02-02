@@ -156,7 +156,7 @@ has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
 }
 #endif // REMEMBER_COLLISIONS
 
-const char * outcome_str[] =
+const char * PCH(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
 static KEY_TYPE
@@ -288,7 +288,7 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 #endif // MULTITHREADED
 }
 
-enum outcome
+enum PCH(outcome)
 PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 {
   KEY_TYPE fingerprint;
@@ -375,7 +375,7 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
   if (exists || found_free_entry) {
     // We can unlock everything and return.
     unlock_indices_except(t, is, NULL);
-    return OK;
+    return PCH(OK);
   }
 
   // At this point we haven't been able to make the insertion, since both cells
@@ -384,7 +384,7 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
   // Unlock everything and give up.
   unlock_indices_except(t, is, NULL);
 
-  return BLOCKS_FULL;
+  return PCH(BLOCKS_FULL);
 #else // ndef FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
@@ -425,7 +425,7 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 #endif // MULTITHREADED
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
-      return OK;
+      return PCH(OK);
     }
 
     fingerprint = swapped_key;
@@ -463,14 +463,14 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
   overfill.entry[overfill_idx].value = metadata;
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
-  return GAVE_UP;
+  return PCH(GAVE_UP);
 #endif // FAIL_EAGERLY
 }
 
-enum outcome
+enum PCH(outcome)
 PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
 {
-  enum outcome result = NOT_FOUND;
+  enum PCH(outcome) result = PCH(NOT_FOUND);
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
@@ -481,12 +481,12 @@ PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].clear = true;
-        result = OK;
+        result = PCH(OK);
         break;
       }
     }
 
-    if (OK == result) {
+    if (PCH(OK) == result) {
       break;
     }
   }
@@ -495,10 +495,10 @@ PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
   return result;
 }
 
-enum outcome
+enum PCH(outcome)
 PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
 {
-  enum outcome result = NOT_FOUND;
+  enum PCH(outcome) result = PCH(NOT_FOUND);
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
@@ -509,12 +509,12 @@ PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         *metadata = t->cell[table_idx].entry[i].value;
-        result = OK;
+        result = PCH(OK);
         break;
       }
     }
 
-    if (OK == result) {
+    if (PCH(OK) == result) {
       break;
     }
   }
@@ -523,10 +523,10 @@ PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
   return result;
 }
 
-enum outcome
+enum PCH(outcome)
 PCH(update)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 {
-  enum outcome result = NOT_FOUND;
+  enum PCH(outcome) result = PCH(NOT_FOUND);
   KEY_TYPE fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
@@ -537,12 +537,12 @@ PCH(update)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].value = metadata;
-        result = OK;
+        result = PCH(OK);
         break;
       }
     }
 
-    if (OK == result) {
+    if (PCH(OK) == result) {
       break;
     }
   }

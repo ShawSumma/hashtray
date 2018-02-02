@@ -11,14 +11,14 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #include "pchast.h"
 
-extern const char * outcome_str[];
+extern const char * PCH(outcome_str)[];
 #define PRINT_OUTCOME(o) { \
-  printf("%s\n", outcome_str[o]); \
+  printf("%s\n", PCH(outcome_str)[o]); \
 }
 
-typedef unsigned outcome_count[END_MARKER];
+typedef unsigned outcome_count[PCH(END_MARKER)];
 #define RESET_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < END_MARKER; i++) { \
+  for (int i = 0; i < PCH(END_MARKER); i++) { \
     outcome_count[i] = 0; \
   } \
 }
@@ -26,8 +26,8 @@ typedef unsigned outcome_count[END_MARKER];
   outcome_count[o] += 1; \
 }
 #define PRINT_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < END_MARKER; i++) { \
-    printf("%s=%d ", outcome_str[i], outcome_count[i]); \
+  for (int i = 0; i < PCH(END_MARKER); i++) { \
+    printf("%s=%d ", PCH(outcome_str)[i], outcome_count[i]); \
   } \
   printf("\n"); \
 }

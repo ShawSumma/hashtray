@@ -55,32 +55,32 @@ simple_test(DATA_TYPE data, DATA_TYPE metadata)
 {
   printf("simple_test: create table, query for a piece of data, insert data, query for that data, reinsert(update) data, requery for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
   struct table * my_tab = PCH(create_table)();
-  enum outcome o;
+  enum PCH(outcome) o;
   DATA_TYPE queried_metadata = 0;
   o = PCH(lookup)(my_tab, data, &queried_metadata);
-  assert(NOT_FOUND == o);
+  assert(PCH(NOT_FOUND) == o);
 
   o = PCH(insert)(my_tab, data, metadata);
-  assert(OK == o);
+  assert(PCH(OK) == o);
 
   o = PCH(lookup)(my_tab, data, &queried_metadata);
-  assert(OK == o);
+  assert(PCH(OK) == o);
   assert(queried_metadata == metadata);
 
   o = PCH(insert)(my_tab, data, metadata + 1);
-  assert(OK == o);
+  assert(PCH(OK) == o);
 
   o = PCH(lookup)(my_tab, data, &queried_metadata);
-  assert(OK == o);
+  assert(PCH(OK) == o);
   assert(queried_metadata == (metadata + 1));
 
   o = PCH(delete)(my_tab, data);
-  assert(OK == o);
+  assert(PCH(OK) == o);
 
   o = PCH(delete)(my_tab, data);
-  assert(NOT_FOUND == o);
+  assert(PCH(NOT_FOUND) == o);
   o = PCH(lookup)(my_tab, data, &queried_metadata);
-  assert(NOT_FOUND == o);
+  assert(PCH(NOT_FOUND) == o);
 
   PCH(destroy_table)(my_tab);
 }
@@ -123,7 +123,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
     temporary_table = true;
   }
 
-  enum outcome o;
+  enum PCH(outcome) o;
 
   outcome_count oc;
   RESET_OUTCOME_STATS(oc)
@@ -151,12 +151,12 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
     PRINT_OUTCOME(o);
 #endif
     if (temporary_table) {
-      assert(NOT_FOUND == o);
+      assert(PCH(NOT_FOUND) == o);
     } else {
-      assert(OK == o || // Everything in test_dataset should appear in test_table...
-             NOT_FOUND == o/*..but it might not appear, if it's been kicked
+      assert(PCH(OK) == o || // Everything in test_dataset should appear in test_table...
+             PCH(NOT_FOUND) == o/*..but it might not appear, if it's been kicked
                              out: there's a check for this further down.*/);
-      if (OK == o) {
+      if (PCH(OK) == o) {
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
 #if 0
@@ -171,7 +171,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
 #endif
 #endif // REMEMBER_COLLISIONS
         }
-      } else if (NOT_FOUND == o) {
+      } else if (PCH(NOT_FOUND) == o) {
 #ifdef REMEMBER_LOSS
         // We expect this item to have been found, so it must have overflowed.
         assert(has_overflowed(data));
@@ -226,7 +226,7 @@ insert_test(struct table * test_table)
 
   struct test_data * result = generate_test_input();
 
-  enum outcome o;
+  enum PCH(outcome) o;
 
   outcome_count oc;
   RESET_OUTCOME_STATS(oc)
@@ -243,8 +243,8 @@ insert_test(struct table * test_table)
 #if 0
     PRINT_OUTCOME(o);
 #endif
-    assert(OK == o || // Assuming that table doesn't fill up...
-           GAVE_UP == o/*... otherwise we might give up trying to add an item
+    assert(PCH(OK) == o || // Assuming that table doesn't fill up...
+           PCH(GAVE_UP) == o/*... otherwise we might give up trying to add an item
                          (after MAX_KICKOUTS has been exceeded).*/);
 
     INCREMENT_OUTCOME(oc, o)
@@ -293,7 +293,7 @@ mix_insert_lookup_test(void)
   enum {INSERT = 0, INSERT_AND_LOOKUP = 1, LOOKUP = 2} state;
 
   struct table * test_table = PCH(create_table)();
-  enum outcome o;
+  enum PCH(outcome) o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
     switch (PCH(rand_range)(INSERT, LOOKUP)) {
@@ -329,8 +329,8 @@ mix_insert_lookup_test(void)
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(GAVE_UP == o ||
-             OK == o);
+      assert(PCH(GAVE_UP) == o ||
+             PCH(OK) == o);
       INCREMENT_OUTCOME(oc_insert, o)
       update_stats(i, one, two, &average_insert, &max_insert, &min_insert);
       break;
@@ -343,7 +343,7 @@ mix_insert_lookup_test(void)
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(OK == o);
+      assert(PCH(OK) == o);
       INCREMENT_OUTCOME(oc_lookup_expectfind, o)
       update_stats(i, one, two, &average_lookup_expectfind, &max_lookup_expectfind, &min_lookup_expectfind);
       break;
@@ -355,8 +355,8 @@ mix_insert_lookup_test(void)
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(NOT_FOUND == o ||
-             OK == o /*This can occur if:
+      assert(PCH(NOT_FOUND) == o ||
+             PCH(OK) == o /*This can occur if:
                        * we happen to regenerate a random value that was previously generated during the INSERT phase
                        * in case of a false-positive (unless we started with an empty table and didn't insert anything).*/);
       INCREMENT_OUTCOME(oc_lookup_notexpectfind, o)
