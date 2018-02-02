@@ -27,6 +27,10 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include "stdio.h"
 #endif // REMEMBER_LOSS
 
+#if defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
+#include "pchast_debug.h"
+#endif // defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
+
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -71,7 +75,7 @@ struct overfill_t {
   struct entry entry[NUM_OVERFILL_ENTRIES];
 } overfill;
 
-static int overfill_idx = 0;
+int overfill_idx = 0;
 
 void
 print_overfill(bool show_entries)

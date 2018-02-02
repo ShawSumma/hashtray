@@ -7,6 +7,8 @@ Nik Sultana, University of Pennsylvania, November 2017
 #ifndef PCHAST_DEBUG
 #define PCHAST_DEBUG
 
+#include <stdbool.h>
+
 #include "pchast.h"
 
 extern const char * outcome_str[];
