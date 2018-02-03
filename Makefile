@@ -17,8 +17,15 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
     -std=c99 -pedantic \
     $(DEBUGGING)
 
+.PHONY: clean tests dist headers
+
+dist: main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c
+	tar czvf pchast.tgz main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c
+
 libpchast.a: pchast_M100.o pchast_S1000.o
 	ar rcs $@ $^
+
+headers: pchast_M100.h pchast_S1000.h
 
 pchast_M100.h : pchast.h pchast_M100_config.h
 	$(CC) -include pchast_M100_config.h $(CFLAGS) -E pchast.h -o $@
@@ -37,10 +44,6 @@ main.o : main.c pchast_S1000.o pchast.h pchast_S1000_config.h
 
 multithreaded_test.o : multithreaded_test.c pchast_M100.o pchast.h pchast_M100_config.h
 	$(CC) -include pchast_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
-
-.PHONY: clean tests headers
-
-headers: pchast_M100.h pchast_S1000.h
 
 pchast_test: main.o pchast_S1000.o pchast.h pchast_S1000_config.h
 	$(CC) -include pchast_S1000_config.h -include pchast.h $(CFLAGS) main.o pchast_S1000.o -o $@
