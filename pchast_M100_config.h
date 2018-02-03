@@ -4,8 +4,6 @@ Partial-key cuckoo hash.
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
-#include <stdint.h>
-
 // NOTE keysize needs to be bigger to occupy a larger table size. Initially
 //      KEY_TYPE==uint8_t, which allows us to address 256 cells, each with
 //      NUM_CELL_ENTRIES entries (i.e., if NUM_CELL_ENTRIES==4 then we can

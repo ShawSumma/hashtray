@@ -4,8 +4,6 @@ Partial-key cuckoo hash.
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
-#include <stdint.h>
-
 #define TABLE_SIZE 1000
 // The following parameters follow the Cuckoo Filter paper.
 #define NUM_CELL_ENTRIES 4
