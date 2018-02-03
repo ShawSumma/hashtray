@@ -4,7 +4,7 @@
 
 ifdef DEBUGGING
 DEBUGGING=-O0 -g -DREMEMBER_LOSS -DREMEMBER_COLLISIONS -DPCHAST_ASSERT \
-    -DLOG_INSERTS -DDESCRIBE_COLLISIONS
+    -DLOG_INSERTS -DDESCRIBE_COLLISIONS -include stdbool.h
 else
 DEBUGGING=-O3
 endif
@@ -19,6 +19,12 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
 
 libpchast.a: pchast_M100.o pchast_S1000.o
 	ar rcs $@ $^
+
+pchast_M100.h : pchast.h pchast_M100_config.h
+	$(CC) -include pchast_M100_config.h $(CFLAGS) -E pchast.h -o $@
+
+pchast_S1000.h : pchast.h pchast_S1000_config.h
+	$(CC) -include pchast_S1000_config.h $(CFLAGS) -E pchast.h -o $@
 
 pchast_M100.o : pchast.c
 	$(CC) -include pchast_M100_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@

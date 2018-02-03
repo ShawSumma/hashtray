@@ -12,14 +12,14 @@ Nik Sultana, University of Pennsylvania, November 2017
 //      store around a thousand distinct pieces of info).
 //
 #define TABLE_SIZE 100
-
+// The following parameters follow the Cuckoo Filter paper.
 #define NUM_CELL_ENTRIES 4
+#define CHOICES 2
+#define MAX_KICKOUTS 500
+
 #define KEY_TYPE uint16_t
 #define VALUE_TYPE uint32_t
 #define DATA_TYPE uint32_t
-// CHOICES and MAX_KICKOUTS parameters follow the Cuckoo Filter paper.
-#define CHOICES 2
-#define MAX_KICKOUTS 500
 
 // If two threads try to lock the same cells in the table then at least one of
 // them will unlock everything and sleep for a random number of microseconds
@@ -27,3 +27,5 @@ Nik Sultana, University of Pennsylvania, November 2017
 #define BACKOFF_SLEEP_MICROSEC 10
 
 #define MULTITHREADED
+
+#define PCH(X) PCH_ ## M100 ## _ ## X

@@ -29,8 +29,8 @@ TODO
 
 #define TEST_DATASET_SIZE 5000
 struct test_data {
-  DATA_TYPE datum;
-  VALUE_TYPE metadatum;
+  PCH(data_t) datum;
+  PCH(value_t) metadatum;
 };
 
 #define TARGET_CORE 0/*FIXME const*/
@@ -51,12 +51,12 @@ cool_cache(void)
 }
 
 void
-simple_test(DATA_TYPE data, DATA_TYPE metadata)
+simple_test(PCH(data_t) data, PCH(data_t) metadata)
 {
   printf("simple_test: create table, query for a piece of data, insert data, query for that data, reinsert(update) data, requery for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
-  struct table * my_tab = PCH(create_table)();
+  struct PCH(table) * my_tab = PCH(create_table)();
   enum PCH(outcome) o;
-  DATA_TYPE queried_metadata = 0;
+  PCH(data_t) queried_metadata = 0;
   o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(PCH(NOT_FOUND) == o);
 
@@ -111,7 +111,7 @@ update_stats(int iteration, uint64_t time_before, uint64_t time_after,
 }
 
 void
-lookup_test(struct test_data * test_dataset, struct table * test_table)
+lookup_test(struct test_data * test_dataset, struct PCH(table) * test_table)
 {
   uint64_t average = 0;
   uint64_t max = 0;
@@ -128,14 +128,14 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
   outcome_count oc;
   RESET_OUTCOME_STATS(oc)
 
-  DATA_TYPE queried_metadata = 0;
+  PCH(data_t) queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    DATA_TYPE data;
+    PCH(data_t) data;
 
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = (DATA_TYPE)PCH(rand_range)(0, INT_MAX);
+      data = (PCH(data_t))PCH(rand_range)(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -160,7 +160,7 @@ lookup_test(struct test_data * test_dataset, struct table * test_table)
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
 #if 0
-          KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
+          PCH(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
           printf("Unexpected result for data=%d (key=%d): expected %d but retrieved %d\n",
               data, fingerprint, test_dataset[i].metadatum, queried_metadata);
 #endif
@@ -204,8 +204,8 @@ generate_test_input(void)
 {
   struct test_data * result = malloc(sizeof(struct test_data) * TEST_DATASET_SIZE);
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (DATA_TYPE)i;
-    result[i].metadatum = (VALUE_TYPE)i;
+    result[i].datum = (PCH(data_t))i;
+    result[i].metadatum = (PCH(value_t))i;
   }
 #ifdef LOG_INSERTS
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
@@ -216,7 +216,7 @@ generate_test_input(void)
 }
 
 struct test_data *
-insert_test(struct table * test_table)
+insert_test(struct PCH(table) * test_table)
 {
   assert(NULL != test_table);
 
@@ -292,7 +292,7 @@ mix_insert_lookup_test(void)
 
   enum {INSERT = 0, INSERT_AND_LOOKUP = 1, LOOKUP = 2} state;
 
-  struct table * test_table = PCH(create_table)();
+  struct PCH(table) * test_table = PCH(create_table)();
   enum PCH(outcome) o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
@@ -310,8 +310,8 @@ mix_insert_lookup_test(void)
         assert(0);
     }
 
-    DATA_TYPE data = (DATA_TYPE)PCH(rand_range)(0, INT_MAX);
-    VALUE_TYPE queried_metadata = (VALUE_TYPE)PCH(rand_range)(0, INT_MAX);
+    PCH(data_t) data = (PCH(data_t))PCH(rand_range)(0, INT_MAX);
+    PCH(value_t) queried_metadata = (PCH(value_t))PCH(rand_range)(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -415,7 +415,7 @@ main()
   // (We generate the data by enumeration, not randomisation, so we shouldn't try to insert the same item twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
-  struct table * my_tab = PCH(create_table)();
+  struct PCH(table) * my_tab = PCH(create_table)();
   printf("Insertion test (of unique data items) into an empty table.\n");
   struct test_data * test_dataset = insert_test(my_tab);
   printf("\n");

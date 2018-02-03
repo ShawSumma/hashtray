@@ -96,7 +96,7 @@ struct server_info_t {
   uint32_t host_classified_correct;
   uint32_t host_classified_incorrect;
 };
-struct table * tbl = NULL;
+struct PCH(table) * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
@@ -162,7 +162,7 @@ print_server_info(void) {
 }
 
 struct host_info_t {
-  VALUE_TYPE id;
+  PCH(value_t) id;
   bool is_good;
   pthread_mutex_t lock;
   uint8_t current_num_connections;
@@ -206,7 +206,7 @@ generate_hosts(void) {
     // Ensure the id is unique.
     int iterations = MAX_ITERATIONS;
     for (; iterations > 0; iterations--) {
-      host_info[i].id = (VALUE_TYPE)PCH(rand_range)(0, RAND_MAX);
+      host_info[i].id = (PCH(value_t))PCH(rand_range)(0, RAND_MAX);
       bool duplicate = false;
       for (int j = 0; j < i; j++) {
         if (host_info[i].id == host_info[j].id) {
@@ -378,7 +378,7 @@ server_main(void * arg) {
 
     uint32_t delay = 0;
 
-    VALUE_TYPE classification = (VALUE_TYPE)(-1);
+    PCH(value_t) classification = (PCH(value_t))(-1);
     if (USE_PCHAST) {
       o = PCH(lookup)(tbl, hinfo->id, &classification); // FIXME could time this.
     } else {

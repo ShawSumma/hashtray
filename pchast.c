@@ -41,22 +41,22 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #endif // MULTITHREADED
 
 struct idxs {
-  KEY_TYPE idx[CHOICES];
+  PCH(key_t) idx[CHOICES];
 };
 
-static KEY_TYPE alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint);
-static struct idxs idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint);
+static PCH(key_t) alt_idx(PCH(key_t) idx, PCH(key_t) fingerprint);
+static struct idxs idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint);
 
-static KEY_TYPE fingerprint_of_DATA_TYPE(DATA_TYPE data);
+static PCH(key_t) fingerprint_of_DATA_TYPE(PCH(data_t) data);
 
 // FIXME ideally hashing functions would be parameters
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
-static KEY_TYPE hash_of_KEY_TYPE(int k, KEY_TYPE data);
+static PCH(key_t) hash_of_KEY_TYPE(int k, PCH(key_t) data);
 
 struct entry {
   bool clear;
-  KEY_TYPE key;
-  VALUE_TYPE value;
+  PCH(key_t) key;
+  PCH(value_t) value;
 };
 
 struct cell {
@@ -97,7 +97,7 @@ reset_overfill(void)
 }
 
 bool
-has_overflowed(DATA_TYPE data) {
+has_overflowed(PCH(data_t) data) {
   // Check if the item is in the "overflow" array.
   bool item_found = false;
   for (int idx = 0; idx < overfill_idx; idx++) {
@@ -138,9 +138,9 @@ reset_collision(void)
 }
 
 bool
-has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
+has_collided(PCH(data_t) data, PCH(value_t) queried_metadata) {
   assert(collision_idx > 0);
-  KEY_TYPE fingerprint = fingerprint_of_DATA_TYPE(data);
+  PCH(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
   bool found_collision = false;
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
@@ -159,8 +159,8 @@ has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata) {
 const char * PCH(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-static KEY_TYPE
-hash_of_KEY_TYPE(int k, KEY_TYPE data)
+static PCH(key_t)
+hash_of_KEY_TYPE(int k, PCH(key_t) data)
 {
 /* FIXME old
   int hash = data + (data * k) + k;
@@ -175,11 +175,11 @@ hash_of_KEY_TYPE(int k, KEY_TYPE data)
   // NOTE based on djb2 at: http://www.cse.yorku.ca/~oz/hash.html
   long long hash = 5381 * k + k;
   char * buf = (char *)&data;
-  for (unsigned i = 0; i < sizeof(DATA_TYPE); i++) {
+  for (unsigned i = 0; i < sizeof(PCH(data_t)); i++) {
     hash = hash * 33 ^ buf[i];
   }
 
-  return (KEY_TYPE)(hash % TABLE_SIZE);
+  return (PCH(key_t))(hash % TABLE_SIZE);
 }
 
 static uint16_t
@@ -194,18 +194,18 @@ hash_of_uint32_to_uint16(uint32_t data)
     hash_of_KEY_TYPE(1, conversion.as_uint16_t[1]);
 }
 
-static KEY_TYPE
-fingerprint_of_DATA_TYPE(DATA_TYPE data)
+static PCH(key_t)
+fingerprint_of_DATA_TYPE(PCH(data_t) data)
 {
   return hash_of_uint32_to_uint16(data);
 }
 
-static KEY_TYPE
-alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
+static PCH(key_t)
+alt_idx(PCH(key_t) idx, PCH(key_t) fingerprint)
 {
   // FIXME assuming CHOICE==2
-  KEY_TYPE h1 = hash_of_KEY_TYPE(0, fingerprint);
-  KEY_TYPE h2 = hash_of_KEY_TYPE(1, fingerprint);
+  PCH(key_t) h1 = hash_of_KEY_TYPE(0, fingerprint);
+  PCH(key_t) h2 = hash_of_KEY_TYPE(1, fingerprint);
   if (idx == h1) {
     return h2;
   } else {
@@ -217,7 +217,7 @@ alt_idx(KEY_TYPE idx, KEY_TYPE fingerprint)
 }
 
 struct idxs
-idxs_of_DATA_TYPE(DATA_TYPE data, KEY_TYPE * fingerprint)
+idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
 {
   struct idxs result;
   *fingerprint = fingerprint_of_DATA_TYPE(data);
@@ -289,9 +289,9 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 }
 
 enum PCH(outcome)
-PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
+PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 {
-  KEY_TYPE fingerprint;
+  PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
 #ifdef LOG_INSERTS
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
@@ -393,8 +393,8 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
   // choose _not_ to kick stuff out of and continue.
   unlock_indices_except(t, is, &table_idx);
 
-  KEY_TYPE swapped_key;
-  VALUE_TYPE swapped_value;
+  PCH(key_t) swapped_key;
+  PCH(value_t) swapped_value;
   for (int try_num = 0; try_num < MAX_KICKOUTS; try_num++) {
     int entry = (int)rand() % NUM_CELL_ENTRIES;
     // FIXME could iterate through entries to find a free one, rather do
@@ -441,7 +441,7 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
    //      that is, pick some other fingerprint in the current block and
    //      attempt to kick it, rather than the current fingerprint; but it's
    //      not obvious which to pick, so the current approach feels simplest.
-    table_idx = (int)alt_idx((KEY_TYPE)table_idx, fingerprint);
+    table_idx = (int)alt_idx((PCH(key_t))table_idx, fingerprint);
 #ifdef MULTITHREADED
     error = pthread_mutex_lock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
@@ -468,10 +468,10 @@ PCH(insert)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
 }
 
 enum PCH(outcome)
-PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
+PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
 {
   enum PCH(outcome) result = PCH(NOT_FOUND);
-  KEY_TYPE fingerprint;
+  PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -496,10 +496,10 @@ PCH(delete)(struct PCH(table) * t, DATA_TYPE data)
 }
 
 enum PCH(outcome)
-PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
+PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata)
 {
   enum PCH(outcome) result = PCH(NOT_FOUND);
-  KEY_TYPE fingerprint;
+  PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -524,10 +524,10 @@ PCH(lookup)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE * metadata)
 }
 
 enum PCH(outcome)
-PCH(update)(struct PCH(table) * t, DATA_TYPE data, DATA_TYPE metadata)
+PCH(update)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 {
   enum PCH(outcome) result = PCH(NOT_FOUND);
-  KEY_TYPE fingerprint;
+  PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
