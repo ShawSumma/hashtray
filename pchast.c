@@ -179,7 +179,7 @@ hash_of_KEY_TYPE(int k, PCH(key_t) data)
     hash = hash * 33 ^ buf[i];
   }
 
-  return (PCH(key_t))(hash % TABLE_SIZE);
+  return ((PCH(key_t))hash) % TABLE_SIZE;
 }
 
 static uint16_t
