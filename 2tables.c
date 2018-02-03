@@ -27,6 +27,8 @@ main() {
   oS = PCH_S1000_insert(tS, dataS, metadataS);
   assert(PCH_S1000_OK == oM);
 
+  // FIXME elaborate this example further
+
   PCH_M100_destroy_table(tM);
   PCH_S1000_destroy_table(tS);
 }
