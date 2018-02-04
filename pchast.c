@@ -36,9 +36,24 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include <stdlib.h>
 #include <time.h>
 
+#if defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+#endif // defined(MULTITHREADED) && defined(MULTIPROCESS)
+
+#if defined(MULTITHREADED) || defined(MULTIPROCESS)
+#include <time.h>
+#endif // defined(MULTITHREADED) || defined(MULTIPROCESS)
+
 #ifdef MULTITHREADED
 #include <pthread.h>
 #endif // MULTITHREADED
+
+#ifdef MULTIPROCESS
+#include <stdio.h>
+#include <sys/mman.h>
+#include <semaphore.h>
+#include <sys/types.h>
+#endif // MULTIPROCESS
 
 struct idxs {
   PCH(key_t) idx[CHOICES];
@@ -68,6 +83,9 @@ struct PCH(table) {
 #ifdef MULTITHREADED
   pthread_mutex_t lock[TABLE_SIZE];
 #endif // MULTITHREADED
+#ifdef MULTIPROCESS
+  sem_t * lock[TABLE_SIZE];
+#endif // MULTIPROCESS
 };
 
 #ifdef REMEMBER_LOSS
@@ -235,24 +253,72 @@ idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
 }
 
 static inline void
-lock_indices(struct PCH(table) * t, struct idxs is) {
-#ifndef MULTITHREADED
+unlock_index(struct PCH(table) * t, int table_idx) {
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
-#else // MULTITHREADED is defined
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#elif defined(MULTITHREADED)
+  int error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+  assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+
+#elif defined(MULTITHREADED)
+  sem_post(t->lock[table_idx]); // FIXME check return value
+#endif
+}
+
+static inline void
+lock_index(struct PCH(table) * t, int table_idx) {
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
+  // Do nothing
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#elif defined(MULTITHREADED)
+  int error = pthread_mutex_lock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+  assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+
+#elif defined(MULTITHREADED)
+  sem_wait(t->lock[table_idx]); // FIXME check return value
+#endif
+}
+
+static inline void
+lock_indices(struct PCH(table) * t, struct idxs is) {
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
+  // Do nothing
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#else
   // We lock both choices at a go, but owing to the sequential nature of
   // locking we could end up with deadlock, so we give up after a short timeout
   // and retry, to give the other side the chance to lock.
   while (true) { // FIXME risk of infinite execution
     int idx = 0;
     for (; idx < CHOICES; idx++) {
-      int result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]]));
-      if (EBUSY == result) {
+      int result;
+
+#ifdef MULTITHREADED
+      result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]])); // FIXME strictly speaking should check for EBUSY == result
+#endif // MULTITHREADED
+
+#ifdef MULTIPROCESS
+      result = sem_trywait(t->lock[(int)is.idx[idx]]);
+#endif // MULTIPROCESS
+
+      if (0 != result) {
         // Unlock everything, wait a tiny amount of time and try again.
         for (int idy = 0; idy < idx; idy++) {
-          int error = pthread_mutex_unlock(&(t->lock[(int)is.idx[idy]]));
-#ifdef PCHAST_ASSERT
-          assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+          unlock_index(t, (int)is.idx[idy]);
         }
         struct timespec req = {.tv_sec = 0,
           .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
@@ -266,30 +332,33 @@ lock_indices(struct PCH(table) * t, struct idxs is) {
       break;
     }
   }
-#endif // MULTITHREADED
+#endif
 }
 
 static inline void
 unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlock) {
-#ifndef MULTITHREADED
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
-#else // MULTITHREADED is defined
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#else
   for (int idx = 0; idx < CHOICES; idx++) {
     int table_idx = (int)is.idx[idx];
     if (NULL == opt_dont_unlock ||
         (NULL != opt_dont_unlock &&
          *opt_dont_unlock != table_idx)) {
-      int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+      unlock_index(t, table_idx);
     }
   }
-#endif // MULTITHREADED
+#endif
 }
 
 enum PCH(outcome)
-PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
+PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
+   void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
+   int (*expiry_fun)(const PCH(data_t) * metadata))
 {
   PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
@@ -365,7 +434,11 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
     assert(!t->cell[table_idx].entry[entry_idx].clear);
     assert(t->cell[table_idx].entry[entry_idx].key == fingerprint);
 #endif // PCHAST_ASSERT
-    t->cell[table_idx].entry[entry_idx].value = metadata;
+    if (NULL == join_fun) {
+      t->cell[table_idx].entry[entry_idx].value = metadata;
+    } else {
+      join_fun(&(t->cell[table_idx].entry[entry_idx].value), &metadata);
+    }
   } else if (found_free_entry) {
     t->cell[free_table_idx].entry[free_entry_idx].clear = false;
     t->cell[free_table_idx].entry[free_entry_idx].key = fingerprint;
@@ -406,6 +479,13 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
     //       down a similar path, it might be counted as multiple collisions
     //       rather than a single one.
 
+    if (NULL != expiry_fun &&
+        expiry_fun(&(t->cell[table_idx].entry[entry])) == 0) {
+      // This item isn't expired. Pick another item.
+      // FIXME relying on rand() to find items might not be a good idea.
+      continue;
+    }
+
     swapped_key = t->cell[table_idx].entry[entry].key;
     swapped_value = t->cell[table_idx].entry[entry].value;
     // t->cell[table_idx] is already locked at this point, so we can update it
@@ -417,12 +497,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
     // wouldn't have entered the "kick out" phase if there were empty cells.
     if (t->cell[table_idx].entry[entry].clear) {
       t->cell[table_idx].entry[entry].clear = false;
-#ifdef MULTITHREADED
-      int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+      unlock_index(t, table_idx);
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
       return PCH(OK);
@@ -430,24 +505,14 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 
     fingerprint = swapped_key;
     metadata = swapped_value;
-#ifdef MULTITHREADED
-    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+    unlock_index(t, table_idx);
    // NOTE in addition to exploring the alternative block we could also explore
    //      a fingerprint's "non-alternative" block for available entries --
    //      that is, pick some other fingerprint in the current block and
    //      attempt to kick it, rather than the current fingerprint; but it's
    //      not obvious which to pick, so the current approach feels simplest.
     table_idx = (int)alt_idx((PCH(key_t))table_idx, fingerprint);
-#ifdef MULTITHREADED
-    error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+    lock_index(t, table_idx);
   }
 
   // If we reached this point then we exceeded MAX_KICKOUTS. We're giving up
@@ -496,7 +561,8 @@ PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
 }
 
 enum PCH(outcome)
-PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata)
+PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
+    void (*apply_fun)(PCH(data_t) * metadata))
 {
   enum PCH(outcome) result = PCH(NOT_FOUND);
   PCH(key_t) fingerprint;
@@ -508,35 +574,12 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata)
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
+
+        if (NULL != apply_fun) {
+          apply_fun(&(t->cell[table_idx].entry[i].value));
+        }
+
         *metadata = t->cell[table_idx].entry[i].value;
-        result = PCH(OK);
-        break;
-      }
-    }
-
-    if (PCH(OK) == result) {
-      break;
-    }
-  }
-
-  unlock_indices_except(t, is, NULL);
-  return result;
-}
-
-enum PCH(outcome)
-PCH(update)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
-{
-  enum PCH(outcome) result = PCH(NOT_FOUND);
-  PCH(key_t) fingerprint;
-  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-  lock_indices(t, is);
-
-  for (int idx = 0; idx < CHOICES; idx++) {
-    int table_idx = (int)is.idx[idx];
-    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      if (! t->cell[table_idx].entry[i].clear &&
-          t->cell[table_idx].entry[i].key == fingerprint) {
-        t->cell[table_idx].entry[i].value = metadata;
         result = PCH(OK);
         break;
       }
@@ -554,7 +597,12 @@ PCH(update)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 struct PCH(table) *
 PCH(create_table)(void)
 {
+#ifdef MULTIPROCESS
+  struct PCH(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+  // FIXME check outcome of mmap()
+#else
   struct PCH(table) * t = malloc(sizeof(*t));
+#endif // MULTIPROCESS
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       t->cell[table_idx].entry[i].clear = true;
@@ -565,6 +613,18 @@ PCH(create_table)(void)
     assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 #endif // MULTITHREADED
+
+#ifdef MULTIPROCESS
+    // Not using sem_init() since it's not supported on MacOS;
+    // so instead I'm making do with sem_open().
+    char name[12];
+    sprintf(name, "/PCH_sem_%d"/*FIXME const -- make this into parameter*/,
+        table_idx);
+    t->lock[table_idx] = sem_open(name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 1);
+#ifdef PCHAST_ASSERT
+    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTIPROCESS
   }
   return t;
 }
@@ -573,14 +633,26 @@ void
 PCH(destroy_table)(struct PCH(table) * t)
 {
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+    int error;
 #ifdef MULTITHREADED
-    int error = pthread_mutex_destroy(&(t->lock[table_idx]));
+    error = pthread_mutex_destroy(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
     assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 #endif // MULTITHREADED
+
+#ifdef MULTIPROCESS
+    error = sem_close(t->lock[table_idx]); // FIXME check return value.
+#ifdef PCHAST_ASSERT
+    assert(-1 != error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTIPROCESS
   }
+#ifdef MULTIPROCESS
+  munmap(t, sizeof(*t)); // FIXME check return value
+#else
   free(t);
+#endif // MULTIPROCESS
 }
 
 int
