@@ -85,7 +85,7 @@ struct PCH(table) {
   pthread_mutex_t lock[TABLE_SIZE];
 #endif // MULTITHREADED
 #ifdef MULTIPROCESS
-  sem_t lock[TABLE_SIZE];
+  sem_t * lock[TABLE_SIZE];
 #endif // MULTIPROCESS
 };
 
@@ -268,7 +268,7 @@ unlock_index(struct PCH(table) * t, int table_idx) {
 #endif // PCHAST_ASSERT
 
 #elif defined(MULTIPROCESS)
-  sem_post(&(t->lock[table_idx])); // FIXME check return value
+  sem_post(t->lock[table_idx]); // FIXME check return value
 #endif
 }
 
@@ -287,7 +287,7 @@ lock_index(struct PCH(table) * t, int table_idx) {
 #endif // PCHAST_ASSERT
 
 #elif defined(MULTIPROCESS)
-  sem_wait(&(t->lock[table_idx])); // FIXME check return value
+  sem_wait(t->lock[table_idx]); // FIXME check return value
 #endif
 }
 
@@ -313,7 +313,7 @@ lock_indices(struct PCH(table) * t, struct idxs is) {
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
-      result = sem_trywait(&(t->lock[(int)is.idx[idx]]));
+      result = sem_trywait(t->lock[(int)is.idx[idx]]);
 #endif // MULTIPROCESS
 
       if (0 != result) {
@@ -618,7 +618,7 @@ PCH(create_table)(void)
 #ifdef MULTIPROCESS
     // Not using sem_init() since it's not supported on MacOS;
     // so instead I'm making do with sem_open().
-#if 1
+#if 0
     sem_init(&(t->lock[table_idx]), 1, 1);
 #else
     char name[12];
@@ -647,7 +647,7 @@ PCH(destroy_table)(struct PCH(table) * t)
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
-    error = sem_close(&(t->lock[table_idx])); // FIXME check return value.
+    error = sem_close(t->lock[table_idx]); // FIXME check return value.
 #ifdef PCHAST_ASSERT
     assert(-1 != error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
