@@ -255,6 +255,7 @@ idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
 
 static inline void
 unlock_index(struct PCH(table) * t, int table_idx) {
+  int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -262,18 +263,23 @@ unlock_index(struct PCH(table) * t, int table_idx) {
 #error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
 
 #elif defined(MULTITHREADED)
-  int error = pthread_mutex_unlock(&(t->lock[table_idx]));
+  error = pthread_mutex_unlock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
   assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 
 #elif defined(MULTIPROCESS)
-  sem_post(t->lock[table_idx]); // FIXME check return value
+  error = sem_post(t->lock[table_idx]);
+#ifdef PCHAST_ASSERT
+  assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+
 #endif
 }
 
 static inline void
 lock_index(struct PCH(table) * t, int table_idx) {
+  int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -281,13 +287,17 @@ lock_index(struct PCH(table) * t, int table_idx) {
 #error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
 
 #elif defined(MULTITHREADED)
-  int error = pthread_mutex_lock(&(t->lock[table_idx]));
+  error = pthread_mutex_lock(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
   assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 
 #elif defined(MULTIPROCESS)
-  sem_wait(t->lock[table_idx]); // FIXME check return value
+  error = sem_wait(t->lock[table_idx]);
+#ifdef PCHAST_ASSERT
+  assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+
 #endif
 }
 
@@ -595,12 +605,23 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
   return result;
 }
 
+#ifdef MULTIPROCESS
+static void
+semaphore_name(char * buf, int i) {
+  // FIXME not checking buf size
+  sprintf(buf, "/PCH_sem_%d"/*FIXME const -- make this into parameter*/,
+      i);
+}
+#endif // MULTIPROCESS
+
 struct PCH(table) *
 PCH(create_table)(void)
 {
 #ifdef MULTIPROCESS
   struct PCH(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-  // FIXME check outcome of mmap()
+#ifdef PCHAST_ASSERT
+    assert(MAP_FAILED != t); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #else
   struct PCH(table) * t = malloc(sizeof(*t));
 #endif // MULTIPROCESS
@@ -621,12 +642,11 @@ PCH(create_table)(void)
 #if 0
     sem_init(&(t->lock[table_idx]), 1, 1);
 #else
-    char name[12];
-    sprintf(name, "/PCH_sem_%d"/*FIXME const -- make this into parameter*/,
-        table_idx);
-    t->lock[table_idx] = sem_open(name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 1);
+    char name[20];
+    semaphore_name(name, table_idx);
+    t->lock[table_idx] = sem_open(name, O_CREAT | O_EXCL, 0600, 1);
 #ifdef PCHAST_ASSERT
-//    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
+    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 #endif
 #endif // MULTIPROCESS
@@ -637,8 +657,8 @@ PCH(create_table)(void)
 void
 PCH(destroy_table)(struct PCH(table) * t)
 {
+  int error;
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
-    int error;
 #ifdef MULTITHREADED
     error = pthread_mutex_destroy(&(t->lock[table_idx]));
 #ifdef PCHAST_ASSERT
@@ -647,14 +667,25 @@ PCH(destroy_table)(struct PCH(table) * t)
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
-    error = sem_close(t->lock[table_idx]); // FIXME check return value.
+    error = sem_close(t->lock[table_idx]);
 #ifdef PCHAST_ASSERT
-    assert(-1 != error); // FIXME check when !PCHAST_ASSERT
+    assert(0 == error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
+
+    char name[20];
+    semaphore_name(name, table_idx);
+    error = sem_unlink(name);
+#ifdef PCHAST_ASSERT
+    assert(0 == error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+
 #endif // MULTIPROCESS
   }
 #ifdef MULTIPROCESS
-  munmap(t, sizeof(*t)); // FIXME check return value
+  error = munmap(t, sizeof(*t));
+#ifdef PCHAST_ASSERT
+  assert(0 == error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
 #else
   free(t);
 #endif // MULTIPROCESS
