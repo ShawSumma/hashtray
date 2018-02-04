@@ -288,6 +288,26 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 #endif // MULTITHREADED
 }
 
+static inline void
+unlock_index(struct PCH(table) * t, int table_idx) {
+#ifdef MULTITHREADED
+    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+}
+
+static inline void
+lock_index(struct PCH(table) * t, int table_idx) {
+#ifdef MULTITHREADED
+    int error = pthread_mutex_lock(&(t->lock[table_idx]));
+#ifdef PCHAST_ASSERT
+    assert(!error); // FIXME check when !PCHAST_ASSERT
+#endif // PCHAST_ASSERT
+#endif // MULTITHREADED
+}
+
 enum PCH(outcome)
 PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 {
@@ -417,12 +437,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
     // wouldn't have entered the "kick out" phase if there were empty cells.
     if (t->cell[table_idx].entry[entry].clear) {
       t->cell[table_idx].entry[entry].clear = false;
-#ifdef MULTITHREADED
-      int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+      unlock_index(t, table_idx);
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
       return PCH(OK);
@@ -430,24 +445,14 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
 
     fingerprint = swapped_key;
     metadata = swapped_value;
-#ifdef MULTITHREADED
-    int error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+    unlock_index(t, table_idx);
    // NOTE in addition to exploring the alternative block we could also explore
    //      a fingerprint's "non-alternative" block for available entries --
    //      that is, pick some other fingerprint in the current block and
    //      attempt to kick it, rather than the current fingerprint; but it's
    //      not obvious which to pick, so the current approach feels simplest.
     table_idx = (int)alt_idx((PCH(key_t))table_idx, fingerprint);
-#ifdef MULTITHREADED
-    error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
+    lock_index(t, table_idx);
   }
 
   // If we reached this point then we exceeded MAX_KICKOUTS. We're giving up
