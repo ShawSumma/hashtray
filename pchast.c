@@ -253,91 +253,6 @@ idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
 }
 
 static inline void
-lock_indices(struct PCH(table) * t, struct idxs is) {
-#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
-  // Do nothing
-
-#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
-#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
-
-#else
-  // We lock both choices at a go, but owing to the sequential nature of
-  // locking we could end up with deadlock, so we give up after a short timeout
-  // and retry, to give the other side the chance to lock.
-  while (true) { // FIXME risk of infinite execution
-    int idx = 0;
-    for (; idx < CHOICES; idx++) {
-      int result;
-
-#ifdef MULTITHREADED
-      result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]])); // FIXME strictly speaking should check for EBUSY == result
-#endif // MULTITHREADED
-
-#ifdef MULTIPROCESS
-      result = sem_trywait(t->lock[(int)is.idx[idx]]);
-#endif // MULTIPROCESS
-
-      if (0 != result) {
-        // Unlock everything, wait a tiny amount of time and try again.
-        for (int idy = 0; idy < idx; idy++) {
-#ifdef MULTITHREADED
-          int error = pthread_mutex_unlock(&(t->lock[(int)is.idx[idy]]));
-#ifdef PCHAST_ASSERT
-          assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-
-#ifdef MULTIPROCESS
-          sem_post(t->lock[(int)is.idx[idy]]); // FIXME check return value
-#endif // MULTIPROCESS
-        }
-        struct timespec req = {.tv_sec = 0,
-          .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
-        struct timespec rem;
-        nanosleep(&req, &rem); // FIXME ignoring return value
-        break;
-      }
-    }
-
-    if (CHOICES == idx) {
-      break;
-    }
-  }
-#endif
-}
-
-static inline void
-unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlock) {
-#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
-  // Do nothing
-
-#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
-#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
-
-#else
-  for (int idx = 0; idx < CHOICES; idx++) {
-    int table_idx = (int)is.idx[idx];
-    if (NULL == opt_dont_unlock ||
-        (NULL != opt_dont_unlock &&
-         *opt_dont_unlock != table_idx)) {
-      int error;
-#ifdef MULTITHREADED
-      error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-      assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
-#endif // MULTITHREADED
-
-#ifdef MULTIPROCESS
-      sem_post(t->lock[table_idx]); // FIXME check return value
-#endif // MULTIPROCESS
-    }
-  }
-
-#endif
-}
-
-static inline void
 unlock_index(struct PCH(table) * t, int table_idx) {
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
@@ -372,6 +287,71 @@ lock_index(struct PCH(table) * t, int table_idx) {
 
 #elif defined(MULTITHREADED)
   sem_wait(t->lock[table_idx]); // FIXME check return value
+#endif
+}
+
+static inline void
+lock_indices(struct PCH(table) * t, struct idxs is) {
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
+  // Do nothing
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#else
+  // We lock both choices at a go, but owing to the sequential nature of
+  // locking we could end up with deadlock, so we give up after a short timeout
+  // and retry, to give the other side the chance to lock.
+  while (true) { // FIXME risk of infinite execution
+    int idx = 0;
+    for (; idx < CHOICES; idx++) {
+      int result;
+
+#ifdef MULTITHREADED
+      result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]])); // FIXME strictly speaking should check for EBUSY == result
+#endif // MULTITHREADED
+
+#ifdef MULTIPROCESS
+      result = sem_trywait(t->lock[(int)is.idx[idx]]);
+#endif // MULTIPROCESS
+
+      if (0 != result) {
+        // Unlock everything, wait a tiny amount of time and try again.
+        for (int idy = 0; idy < idx; idy++) {
+          unlock_index(t, (int)is.idx[idy]);
+        }
+        struct timespec req = {.tv_sec = 0,
+          .tv_nsec = (1000 * (rand() % BACKOFF_SLEEP_MICROSEC))};
+        struct timespec rem;
+        nanosleep(&req, &rem); // FIXME ignoring return value
+        break;
+      }
+    }
+
+    if (CHOICES == idx) {
+      break;
+    }
+  }
+#endif
+}
+
+static inline void
+unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlock) {
+#if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
+  // Do nothing
+
+#elif defined(MULTITHREADED) && defined(MULTIPROCESS)
+#error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
+
+#else
+  for (int idx = 0; idx < CHOICES; idx++) {
+    int table_idx = (int)is.idx[idx];
+    if (NULL == opt_dont_unlock ||
+        (NULL != opt_dont_unlock &&
+         *opt_dont_unlock != table_idx)) {
+      unlock_index(t, table_idx);
+    }
+  }
 #endif
 }
 
