@@ -40,6 +40,10 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #error Simultaneous MULTITHREADED and MULTIPROCESS not supported.
 #endif // defined(MULTITHREADED) && defined(MULTIPROCESS)
 
+#if defined(MULTITHREADED) || defined(MULTIPROCESS)
+#include <time.h>
+#endif // defined(MULTITHREADED) || defined(MULTIPROCESS)
+
 #ifdef MULTITHREADED
 #include <pthread.h>
 #endif // MULTITHREADED
