@@ -85,7 +85,7 @@ struct PCH(table) {
   pthread_mutex_t lock[TABLE_SIZE];
 #endif // MULTITHREADED
 #ifdef MULTIPROCESS
-  sem_t * lock[TABLE_SIZE];
+  sem_t lock[TABLE_SIZE];
 #endif // MULTIPROCESS
 };
 
@@ -267,8 +267,8 @@ unlock_index(struct PCH(table) * t, int table_idx) {
   assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 
-#elif defined(MULTITHREADED)
-  sem_post(t->lock[table_idx]); // FIXME check return value
+#elif defined(MULTIPROCESS)
+  sem_post(&(t->lock[table_idx])); // FIXME check return value
 #endif
 }
 
@@ -286,8 +286,8 @@ lock_index(struct PCH(table) * t, int table_idx) {
   assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 
-#elif defined(MULTITHREADED)
-  sem_wait(t->lock[table_idx]); // FIXME check return value
+#elif defined(MULTIPROCESS)
+  sem_wait(&(t->lock[table_idx])); // FIXME check return value
 #endif
 }
 
@@ -313,7 +313,7 @@ lock_indices(struct PCH(table) * t, struct idxs is) {
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
-      result = sem_trywait(t->lock[(int)is.idx[idx]]);
+      result = sem_trywait(&(t->lock[(int)is.idx[idx]]));
 #endif // MULTIPROCESS
 
       if (0 != result) {
@@ -481,7 +481,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     //       rather than a single one.
 
     if (NULL != expiry_fun &&
-        expiry_fun(&(t->cell[table_idx].entry[entry])) == 0) {
+        expiry_fun(&(t->cell[table_idx].entry[entry].value)) == 0) {
       // This item isn't expired. Pick another item.
       // FIXME relying on rand() to find items might not be a good idea.
       continue;
@@ -618,13 +618,17 @@ PCH(create_table)(void)
 #ifdef MULTIPROCESS
     // Not using sem_init() since it's not supported on MacOS;
     // so instead I'm making do with sem_open().
+#if 1
+    sem_init(&(t->lock[table_idx]), 1, 1);
+#else
     char name[12];
     sprintf(name, "/PCH_sem_%d"/*FIXME const -- make this into parameter*/,
         table_idx);
     t->lock[table_idx] = sem_open(name, O_CREAT | O_EXCL, S_IRUSR | S_IWUSR, 1);
 #ifdef PCHAST_ASSERT
-    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
+//    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
+#endif
 #endif // MULTIPROCESS
   }
   return t;
@@ -643,7 +647,7 @@ PCH(destroy_table)(struct PCH(table) * t)
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
-    error = sem_close(t->lock[table_idx]); // FIXME check return value.
+    error = sem_close(&(t->lock[table_idx])); // FIXME check return value.
 #ifdef PCHAST_ASSERT
     assert(-1 != error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
