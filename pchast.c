@@ -49,6 +49,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
+#include <fcntl.h>
 #include <stdio.h>
 #include <sys/mman.h>
 #include <semaphore.h>
