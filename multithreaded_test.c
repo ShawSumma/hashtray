@@ -469,7 +469,7 @@ server_main(void * arg) {
         }
 #endif // USE_PERFECT_CLASSIFIER
 
-        o = PCH(insert)(tbl, hinfo->id, classification); // FIXME could time this.
+        o = PCH(insert)(tbl, hinfo->id, classification, NULL); // FIXME could time this.
       }
 
       // FIXME could also model reclassification at some sampling rate, to

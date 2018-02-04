@@ -27,7 +27,7 @@ main() {
   printf("p=%d dataP=%d metadataP=%d\n", p, dataP, metadataP);
 
   enum PCH_P100_outcome oP;
-  oP = PCH_P100_insert(tP, dataP, metadataP);
+  oP = PCH_P100_insert(tP, dataP, metadataP, NULL);
   assert(PCH_P100_OK == oP);
 
   sleep(5);
