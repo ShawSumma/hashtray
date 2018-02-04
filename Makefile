@@ -51,7 +51,7 @@ main.o : main.c pchast_S1000.o pchast.h pchast_S1000_config.h
 multithreaded_test.o : multithreaded_test.c pchast_M100.o pchast.h pchast_M100_config.h
 	$(CC) -include pchast_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
 
-multiprocess_test.o : multiprocess_test.c pchast_P100.o pchast_M100_config.h
+multiprocess_test.o : multiprocess_test.c pchast_P100.o pchast_M100_config.h pchast_P100.h
 	$(CC) $(CFLAGS) -c multiprocess_test.c -o $@
 
 pchast_test: main.o pchast_S1000.o pchast.h pchast_S1000_config.h
@@ -63,7 +63,7 @@ pchast_multithreaded: multithreaded_test.o pchast_M100.o pchast.h pchast_M100_co
 pchast_2tables: headers 2tables.c pchast_M100.o pchast_S1000.o
 	$(CC) $(CFLAGS) -lpthread pchast_M100.o pchast_S1000.o 2tables.c -o $@
 
-pchast_multiprocess: multiprocess_test.o pchast_P100.o pchast_P100.h
+pchast_multiprocess: multiprocess_test.o pchast_P100.o
 	$(CC) $(CFLAGS) multiprocess_test.o pchast_P100.o -o $@
 
 tests: pchast_test pchast_multithreaded pchast_2tables pchast_multiprocess
