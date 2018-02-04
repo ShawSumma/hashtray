@@ -19,8 +19,8 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
 
 .PHONY: clean tests dist headers
 
-dist: main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c pchast_debug.h pchast_P100_config.h
-	tar czvf pchast.tgz main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c pchast_debug.h pchast_P100_config.h
+dist: main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c pchast_debug.h pchast_P100_config.h multiprocess_test.c
+	tar czvf pchast.tgz $@
 
 libpchast.a: pchast_M100.o pchast_S1000.o pchast_P100.o
 	ar rcs $@ $^
@@ -45,13 +45,14 @@ pchast_S1000.o : pchast.c
 pchast_P100.o : pchast.c
 	$(CC) -include stdint.h -include pchast_P100_config.h -include pchast.h -c $(CFLAGS) pchast.c -o $@
 
-# FIXME missing test for pchast_P100.o
-
 main.o : main.c pchast_S1000.o pchast.h pchast_S1000_config.h
 	$(CC) -include pchast_S1000_config.h $(CFLAGS) -c main.c -o $@
 
 multithreaded_test.o : multithreaded_test.c pchast_M100.o pchast.h pchast_M100_config.h
 	$(CC) -include pchast_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
+
+multiprocess_test.o : multiprocess_test.c pchast_P100.o pchast_M100_config.h
+	$(CC) $(CFLAGS) -c multiprocess_test.c -o $@
 
 pchast_test: main.o pchast_S1000.o pchast.h pchast_S1000_config.h
 	$(CC) -include pchast_S1000_config.h -include pchast.h $(CFLAGS) main.o pchast_S1000.o -o $@
@@ -62,7 +63,10 @@ pchast_multithreaded: multithreaded_test.o pchast_M100.o pchast.h pchast_M100_co
 pchast_2tables: headers 2tables.c pchast_M100.o pchast_S1000.o
 	$(CC) $(CFLAGS) -lpthread pchast_M100.o pchast_S1000.o 2tables.c -o $@
 
-tests: pchast_test pchast_multithreaded pchast_2tables
+pchast_multiprocess: multiprocess_test.o pchast_P100.o pchast_P100.h
+	$(CC) $(CFLAGS) multiprocess_test.o pchast_P100.o -o $@
+
+tests: pchast_test pchast_multithreaded pchast_2tables pchast_multiprocess
 
 clean:
-	rm -f main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithreaded pchast_M100.o pchast_M100.h pchast_S1000.o pchast_S1000.h pchast_2tables pchast_P100.o pchast_P100.h
+	rm -f main.o multithreaded_test.o pchast.o libpchast.a pchest_test pchast_multithreaded pchast_M100.o pchast_M100.h pchast_S1000.o pchast_S1000.h pchast_2tables pchast_P100.o pchast_P100.h pchast_multiprocess multiprocess_test.o
