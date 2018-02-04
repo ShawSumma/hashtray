@@ -19,13 +19,13 @@ main() {
   PCH_M100_data_t dataM = 1;
   PCH_M100_data_t metadataM = 1;
   enum PCH_M100_outcome oM;
-  oM = PCH_M100_insert(tM, dataM, metadataM, NULL);
+  oM = PCH_M100_insert(tM, dataM, metadataM, NULL, NULL);
   assert(PCH_M100_OK == oM);
 
   PCH_S1000_data_t dataS = 2;
   PCH_S1000_data_t metadataS = 2;
   enum PCH_S1000_outcome oS;
-  oS = PCH_S1000_insert(tS, dataS, metadataS, NULL);
+  oS = PCH_S1000_insert(tS, dataS, metadataS, NULL, NULL);
   assert(PCH_S1000_OK == oM);
 
   // FIXME elaborate this example further

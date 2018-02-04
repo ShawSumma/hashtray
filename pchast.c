@@ -357,7 +357,8 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 
 enum PCH(outcome)
 PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new))
+   void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
+   int (*expiry_fun)(const PCH(data_t) * metadata))
 {
   PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
@@ -477,6 +478,13 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     //       over-reporting collisions, e.g., if 2 entries get kicked
     //       down a similar path, it might be counted as multiple collisions
     //       rather than a single one.
+
+    if (NULL != expiry_fun &&
+        expiry_fun(&(t->cell[table_idx].entry[entry])) == 0) {
+      // This item isn't expired. Pick another item.
+      // FIXME relying on rand() to find items might not be a good idea.
+      continue;
+    }
 
     swapped_key = t->cell[table_idx].entry[entry].key;
     swapped_value = t->cell[table_idx].entry[entry].value;

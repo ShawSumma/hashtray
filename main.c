@@ -60,14 +60,14 @@ simple_test(PCH(data_t) data, PCH(data_t) metadata)
   o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(PCH(NOT_FOUND) == o);
 
-  o = PCH(insert)(my_tab, data, metadata, NULL);
+  o = PCH(insert)(my_tab, data, metadata, NULL, NULL);
   assert(PCH(OK) == o);
 
   o = PCH(lookup)(my_tab, data, &queried_metadata);
   assert(PCH(OK) == o);
   assert(queried_metadata == metadata);
 
-  o = PCH(insert)(my_tab, data, metadata + 1, NULL);
+  o = PCH(insert)(my_tab, data, metadata + 1, NULL, NULL);
   assert(PCH(OK) == o);
 
   o = PCH(lookup)(my_tab, data, &queried_metadata);
@@ -238,7 +238,7 @@ insert_test(struct PCH(table) * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = PCH(insert)(test_table, result[i].datum, result[i].metadatum, NULL);
+    o = PCH(insert)(test_table, result[i].datum, result[i].metadatum, NULL, NULL);
     uint64_t two = rdtscp(&aux);
 #if 0
     PRINT_OUTCOME(o);
@@ -324,7 +324,7 @@ mix_insert_lookup_test(void)
     switch (state) {
     case INSERT:
       one = rdtscp(&aux);
-      o = PCH(insert)(test_table, data, queried_metadata, NULL);
+      o = PCH(insert)(test_table, data, queried_metadata, NULL, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
@@ -336,7 +336,7 @@ mix_insert_lookup_test(void)
       break;
 
     case INSERT_AND_LOOKUP:
-      (void)PCH(insert)(test_table, data, queried_metadata, NULL);
+      (void)PCH(insert)(test_table, data, queried_metadata, NULL, NULL);
       one = rdtscp(&aux);
       o = PCH(lookup)(test_table, data, &queried_metadata);
       two = rdtscp(&aux);
