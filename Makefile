@@ -20,7 +20,7 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
 .PHONY: clean tests dist headers
 
 dist: main.c multithreaded_test.c pchast.c pchast.h pchast_M100_config.h pchast_S1000_config.h Makefile 2tables.c pchast_debug.h pchast_P100_config.h multiprocess_test.c
-	tar czvf pchast.tgz $@
+	tar czvf pchast.tgz $^
 
 libpchast.a: pchast_M100.o pchast_S1000.o pchast_P100.o
 	ar rcs $@ $^
