@@ -266,19 +266,14 @@ lock_indices(struct PCH(table) * t, struct idxs is) {
       int result;
 
 #ifdef MULTITHREADED
-      result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]]));
-      if (EBUSY == result) {
-        result = 1;
-      } else {
-        result = 0; // FIXME this might not be correct since there might have been other error-related return values other than EBUSY
-      }
+      result = pthread_mutex_trylock(&(t->lock[(int)is.idx[idx]])); // FIXME strictly speaking should check for EBUSY == result
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
       result = sem_trywait(t->lock[(int)is.idx[idx]]);
 #endif // MULTIPROCESS
 
-      if (0 == result) {
+      if (0 != result) {
         // Unlock everything, wait a tiny amount of time and try again.
         for (int idy = 0; idy < idx; idy++) {
 #ifdef MULTITHREADED
