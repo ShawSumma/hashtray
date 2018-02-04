@@ -30,7 +30,10 @@ main() {
   oP = PCH_P100_insert(tP, dataP, metadataP, NULL, NULL);
   assert(PCH_P100_OK == oP);
 
-  sleep(5);
+  unsigned sleep_time = 5;
+  printf("Sleeping for %d s\n", sleep_time);
+  sleep(sleep_time);
+  printf("Waking\n");
 
   if (0 == p) {
     dataP = 2;
@@ -47,5 +50,7 @@ main() {
     assert(1 == metadataP);
   }
 
-  PCH_P100_destroy_table(tP);
+  if (0 != p) {
+    PCH_P100_destroy_table(tP);
+  }
 }
