@@ -37,7 +37,7 @@ main() {
   } else {
     dataP = 1;
   }
-  oP = PCH_P100_lookup(tP, dataP, &metadataP);
+  oP = PCH_P100_lookup(tP, dataP, &metadataP, NULL);
   assert(PCH_P100_OK == oP);
   printf("p=%d dataP=%d metadataP=%d\n", p, dataP, metadataP);
 

@@ -561,7 +561,8 @@ PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
 }
 
 enum PCH(outcome)
-PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata)
+PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
+    void (*apply_fun)(PCH(data_t) * metadata))
 {
   enum PCH(outcome) result = PCH(NOT_FOUND);
   PCH(key_t) fingerprint;
@@ -573,35 +574,12 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata)
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
+
+        if (NULL != apply_fun) {
+          apply_fun(&(t->cell[table_idx].entry[i].value));
+        }
+
         *metadata = t->cell[table_idx].entry[i].value;
-        result = PCH(OK);
-        break;
-      }
-    }
-
-    if (PCH(OK) == result) {
-      break;
-    }
-  }
-
-  unlock_indices_except(t, is, NULL);
-  return result;
-}
-
-enum PCH(outcome)
-PCH(update)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata)
-{
-  enum PCH(outcome) result = PCH(NOT_FOUND);
-  PCH(key_t) fingerprint;
-  struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-  lock_indices(t, is);
-
-  for (int idx = 0; idx < CHOICES; idx++) {
-    int table_idx = (int)is.idx[idx];
-    for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
-      if (! t->cell[table_idx].entry[i].clear &&
-          t->cell[table_idx].entry[i].key == fingerprint) {
-        t->cell[table_idx].entry[i].value = metadata;
         result = PCH(OK);
         break;
       }

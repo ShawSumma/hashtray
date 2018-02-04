@@ -57,20 +57,20 @@ simple_test(PCH(data_t) data, PCH(data_t) metadata)
   struct PCH(table) * my_tab = PCH(create_table)();
   enum PCH(outcome) o;
   PCH(data_t) queried_metadata = 0;
-  o = PCH(lookup)(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata, NULL);
   assert(PCH(NOT_FOUND) == o);
 
   o = PCH(insert)(my_tab, data, metadata, NULL, NULL);
   assert(PCH(OK) == o);
 
-  o = PCH(lookup)(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata, NULL);
   assert(PCH(OK) == o);
   assert(queried_metadata == metadata);
 
   o = PCH(insert)(my_tab, data, metadata + 1, NULL, NULL);
   assert(PCH(OK) == o);
 
-  o = PCH(lookup)(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata, NULL);
   assert(PCH(OK) == o);
   assert(queried_metadata == (metadata + 1));
 
@@ -79,7 +79,7 @@ simple_test(PCH(data_t) data, PCH(data_t) metadata)
 
   o = PCH(delete)(my_tab, data);
   assert(PCH(NOT_FOUND) == o);
-  o = PCH(lookup)(my_tab, data, &queried_metadata);
+  o = PCH(lookup)(my_tab, data, &queried_metadata, NULL);
   assert(PCH(NOT_FOUND) == o);
 
   PCH(destroy_table)(my_tab);
@@ -144,7 +144,7 @@ lookup_test(struct test_data * test_dataset, struct PCH(table) * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = PCH(lookup)(test_table, data, &queried_metadata);
+    o = PCH(lookup)(test_table, data, &queried_metadata, NULL);
     uint64_t two = rdtscp(&aux);
 
 #if 0
@@ -338,7 +338,7 @@ mix_insert_lookup_test(void)
     case INSERT_AND_LOOKUP:
       (void)PCH(insert)(test_table, data, queried_metadata, NULL, NULL);
       one = rdtscp(&aux);
-      o = PCH(lookup)(test_table, data, &queried_metadata);
+      o = PCH(lookup)(test_table, data, &queried_metadata, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
@@ -350,7 +350,7 @@ mix_insert_lookup_test(void)
 
     case LOOKUP:
       one = rdtscp(&aux);
-      o = PCH(lookup)(test_table, data, &queried_metadata);
+      o = PCH(lookup)(test_table, data, &queried_metadata, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);

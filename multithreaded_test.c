@@ -380,7 +380,7 @@ server_main(void * arg) {
 
     PCH(value_t) classification = (PCH(value_t))(-1);
     if (USE_PCHAST) {
-      o = PCH(lookup)(tbl, hinfo->id, &classification); // FIXME could time this.
+      o = PCH(lookup)(tbl, hinfo->id, &classification, NULL); // FIXME could time this.
     } else {
       o = PCH(NOT_FOUND);
     }

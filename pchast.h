@@ -26,5 +26,5 @@ enum PCH(outcome) PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_
    void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
    int (*expiry_fun)(const PCH(data_t) * metadata));
 enum PCH(outcome) PCH(delete)(struct PCH(table) * t, PCH(data_t) data);
-enum PCH(outcome) PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata);
-enum PCH(outcome) PCH(update)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata);
+enum PCH(outcome) PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
+    void (*apply_fun)(PCH(data_t) * metadata));
