@@ -575,6 +575,7 @@ enum PCH(outcome)
 PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
     int (*apply_fun)(PCH(data_t) * metadata))
 {
+  bool done = false;
   enum PCH(outcome) result = PCH(NOT_FOUND);
   PCH(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
@@ -586,20 +587,25 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
 
+        int delete = 0;
         if (NULL != apply_fun) {
-          int delete = apply_fun(&(t->cell[table_idx].entry[i].value));
-          if (0 != delete) {
-            t->cell[table_idx].entry[i].clear = 1;
-          }
+          delete = apply_fun(&(t->cell[table_idx].entry[i].value));
         }
 
         *metadata = t->cell[table_idx].entry[i].value;
-        result = PCH(OK);
+
+        if (0 != delete) {
+          t->cell[table_idx].entry[i].clear = 1;
+          result = PCH(NOT_FOUND);
+        } else {
+          result = PCH(OK);
+        }
+        done = true;
         break;
       }
     }
 
-    if (PCH(OK) == result) {
+    if (done) {
       break;
     }
   }
