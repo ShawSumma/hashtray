@@ -644,7 +644,7 @@ PCH(create_table)(void)
 #else
     char name[20];
     semaphore_name(name, table_idx);
-    t->lock[table_idx] = sem_open(name, O_CREAT | O_EXCL, 0600, 1);
+    t->lock[table_idx] = sem_open(name, O_CREAT /* FIXME | O_EXCL*/, 0600, 1);
 #ifdef PCHAST_ASSERT
     assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
