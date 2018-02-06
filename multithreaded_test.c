@@ -202,24 +202,7 @@ static void
 generate_hosts(void) {
   int error;
   for (int i = 0; i < NUM_HOSTS; i++) {
-
-    // Ensure the id is unique.
-    int iterations = MAX_ITERATIONS;
-    for (; iterations > 0; iterations--) {
-      host_info[i].id = (PCH(value_t))PCH(rand_range)(0, RAND_MAX);
-      bool duplicate = false;
-      for (int j = 0; j < i; j++) {
-        if (host_info[i].id == host_info[j].id) {
-          duplicate = true;
-          break;
-        }
-      }
-      if (!duplicate) {
-        break;
-      }
-    }
-    assert(iterations > 0);
-
+    host_info[i].id = (PCH(value_t))i; // Ensure the id is unique (as long as PCH(value_t) is big enough.
     host_info[i].current_num_connections = 0;
 
     int goodness = PCH(rand_range)(1, 100);
