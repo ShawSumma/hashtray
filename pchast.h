@@ -23,7 +23,7 @@ void PCH(destroy_table)(struct PCH(table) * t);
 
 // If "insert" finds a k-v mapping for the same key, then it behaves like "update.
 enum PCH(outcome) PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
+   void (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
    int (*expiry_fun)(const PCH(data_t) * metadata));
 enum PCH(outcome) PCH(delete)(struct PCH(table) * t, PCH(data_t) data);
 enum PCH(outcome) PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,

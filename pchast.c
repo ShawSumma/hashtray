@@ -368,7 +368,7 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 
 enum PCH(outcome)
 PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   void (*join_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
+   void (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
    int (*expiry_fun)(const PCH(data_t) * metadata))
 {
   PCH(key_t) fingerprint;
@@ -445,10 +445,10 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     assert(!t->cell[table_idx].entry[entry_idx].clear);
     assert(t->cell[table_idx].entry[entry_idx].key == fingerprint);
 #endif // PCHAST_ASSERT
-    if (NULL == join_fun) {
+    if (NULL == merge_fun) {
       t->cell[table_idx].entry[entry_idx].value = metadata;
     } else {
-      join_fun(&(t->cell[table_idx].entry[entry_idx].value), &metadata);
+      merge_fun(&(t->cell[table_idx].entry[entry_idx].value), &metadata);
     }
   } else if (found_free_entry) {
     t->cell[free_table_idx].entry[free_entry_idx].clear = false;
