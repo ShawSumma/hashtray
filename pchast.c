@@ -440,7 +440,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     }
   }
 
-  int delete;
+  int delete = 0;
   if (exists) {
 #ifdef PCHAST_ASSERT
     assert(!t->cell[table_idx].entry[entry_idx].clear);
@@ -600,12 +600,11 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
           delete = apply_fun(&(t->cell[table_idx].entry[i].value));
         }
 
-        *metadata = t->cell[table_idx].entry[i].value;
-
         if (0 != delete) {
           t->cell[table_idx].entry[i].clear = 1;
           result = PCH(NOT_FOUND);
         } else {
+          *metadata = t->cell[table_idx].entry[i].value;
           result = PCH(OK);
         }
         done = true;
