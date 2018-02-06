@@ -368,7 +368,7 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 
 enum PCH(outcome)
 PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   void (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
+   int (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
    int (*expiry_fun)(const PCH(data_t) * metadata))
 {
   PCH(key_t) fingerprint;
@@ -440,6 +440,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     }
   }
 
+  int delete;
   if (exists) {
 #ifdef PCHAST_ASSERT
     assert(!t->cell[table_idx].entry[entry_idx].clear);
@@ -448,7 +449,10 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     if (NULL == merge_fun) {
       t->cell[table_idx].entry[entry_idx].value = metadata;
     } else {
-      merge_fun(&(t->cell[table_idx].entry[entry_idx].value), &metadata);
+      delete = merge_fun(&(t->cell[table_idx].entry[entry_idx].value), &metadata);
+      if (0 != delete) {
+        t->cell[free_table_idx].entry[free_entry_idx].clear = true;
+      }
     }
   } else if (found_free_entry) {
     t->cell[free_table_idx].entry[free_entry_idx].clear = false;
@@ -459,7 +463,11 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   if (exists || found_free_entry) {
     // We can unlock everything and return.
     unlock_indices_except(t, is, NULL);
-    return PCH(OK);
+    if (0 != delete) {
+      return PCH(NOT_FOUND);
+    } else {
+      return PCH(OK);
+    }
   }
 
   // At this point we haven't been able to make the insertion, since both cells
