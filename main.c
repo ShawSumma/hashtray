@@ -47,6 +47,7 @@ cool_cache(void)
     buf[i] += 1;
     nonse += buf[i];
   }
+  free(buf);
   return nonse;
 }
 
