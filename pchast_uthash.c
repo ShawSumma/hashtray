@@ -3,6 +3,13 @@ Instantiating pchast API using uthash, for testing.
 Nik Sultana, University of Pennsylvania, February 2018
 */
 
+// NOTE I only define this for specific experiments.
+//#define INFINITE_TABLE
+
+#ifdef PCHAST_UTHASH_DEBUG
+#include <stdio.h>
+#endif // PCHAST_UTHASH_DEBUG
+
 #include "uthash.h"
 
 #ifdef PCHAST_ASSERT
@@ -48,6 +55,24 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
 #ifndef INFINITE_TABLE
   // Enforce TABLE_SIZE unless modelling perfection
   if (HASH_COUNT(t->table) > TABLE_SIZE) {
+
+// NOTE i'm leaving this commented code here in case it's useful
+//      in future tests. The point is that the table can be larger than
+//      TABLE_SIZE -- this first test checks to ensure that TABLE_SIZE
+//      has a specific value:
+//if (TABLE_SIZE != 100) { free(-1); /*FIXME crude test*/ }
+//      Moreover, we can enforce a larger table size (than TABLE_SIZE)
+//      to retain more control than we'd have with INFINITE_TABLE.
+//      I do this to check that finite but larget values of network size
+//      (measured in hosts) behaves as intended -- results can be strange
+//      because of the "catching up" effect when simulations need longer time
+//      (when they involve a larger number of hosts).
+//      So here we can enforce that size, and can decide when and how to
+//      evict when the table can't take any more entries:
+//  if (HASH_COUNT(t->table) > 400/*FIXME const*/) {
+//  if (HASH_COUNT(t->table) > 400000/*FIXME const*/) {
+//  if (HASH_COUNT(t->table) > 800000/*FIXME const*/) {
+
     // Simple eviction policy:
 #ifdef PCHAST_ASSERT
     assert (NULL != t->table);
@@ -58,6 +83,9 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   }
 #endif // INFINITE_TABLE
 
+#ifdef PCHAST_UTHASH_DEBUG
+  printf("=%d\n", HASH_COUNT(t->table));
+#endif // PCHAST_UTHASH_DEBUG
   struct entry * record = malloc(sizeof(*record));
   record->key = data;
   record->value = metadata;
@@ -100,6 +128,9 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
   assert(!error); // FIXME check when !PCHAST_ASSERT
 #endif // PCHAST_ASSERT
 
+#ifdef PCHAST_UTHASH_DEBUG
+  printf("[%d\n", HASH_COUNT(t->table));
+#endif // PCHAST_UTHASH_DEBUG
   HASH_FIND_INT/*FIXME assume specific type of key*/(t->table, &data, retrieved);
   if (NULL != retrieved) {
     *metadata = retrieved->value;
