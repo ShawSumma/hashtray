@@ -66,6 +66,14 @@ pchast_2tables: headers 2tables.c pchast_M100.o pchast_S1000.o
 pchast_multiprocess: multiprocess_test.o pchast_P100.o
 	$(CC) $(CFLAGS) multiprocess_test.o pchast_P100.o -o $@
 
+# NOTE using uthash is optional. To use it clone the uthash repo in the UTHASH directory, and build the uthash-related targets.
+UTHASH=uthash
+pchast_M100_uthash.o : pchast_uthash.c
+	$(CC) -include stdint.h -include pchast_M100_config.h -include pchast.h -I$(UTHASH)/include -c $(CFLAGS) pchast_uthash.c -o $@
+
+pchast_multithreaded_uthash: multithreaded_test.o pchast_M100_uthash.o pchast.h pchast_M100_config.h
+	$(CC) -include pchast_M100_config.h -include pchast.h $(CFLAGS) -lpthread multithreaded_test.o pchast_M100_uthash.o -o $@
+
 tests: pchast_test pchast_multithreaded pchast_2tables pchast_multiprocess
 
 clean:
