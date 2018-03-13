@@ -525,11 +525,11 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     fingerprint = swapped_key;
     metadata = swapped_value;
     unlock_index(t, table_idx);
-   // NOTE in addition to exploring the alternative block we could also explore
-   //      a fingerprint's "non-alternative" block for available entries --
-   //      that is, pick some other fingerprint in the current block and
-   //      attempt to kick it, rather than the current fingerprint; but it's
-   //      not obvious which to pick, so the current approach feels simplest.
+    // NOTE in addition to exploring the alternative block we could also explore
+    //      a fingerprint's "non-alternative" block for available entries --
+    //      that is, pick some other fingerprint in the current block and
+    //      attempt to kick it, rather than the current fingerprint; but it's
+    //      not obvious which to pick, so the current approach feels simplest.
     table_idx = (int)alt_idx((PCH(key_t))table_idx, fingerprint);
     lock_index(t, table_idx);
   }
