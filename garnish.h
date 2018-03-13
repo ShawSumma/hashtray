@@ -1,30 +1,29 @@
 /*
-Partial-key cuckoo hash.
-(aka A cuckoo filter with a value associated with each fingerprint)
+garnish API
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
-#ifndef PCH
-#error PCH not defined
+#ifndef GARN
+#error GARN not defined
 #endif
 
-typedef KEY_TYPE PCH(key_t);
-typedef VALUE_TYPE PCH(value_t);
-typedef DATA_TYPE PCH(data_t);
+typedef KEY_TYPE GARN(key_t);
+typedef VALUE_TYPE GARN(value_t);
+typedef DATA_TYPE GARN(data_t);
 
-int PCH(rand_range)(int min, int max);
-enum PCH(outcome) {PCH(OK) = 0, PCH(NOT_FOUND), PCH(GAVE_UP), PCH(BLOCKS_FULL),
-  PCH(END_MARKER)};
+int GARN(rand_range)(int min, int max);
+enum GARN(outcome) {GARN(OK) = 0, GARN(NOT_FOUND), GARN(GAVE_UP), GARN(BLOCKS_FULL),
+  GARN(END_MARKER)};
 
-struct PCH(table);
+struct GARN(table);
 
-struct PCH(table) * PCH(create_table)(void);
-void PCH(destroy_table)(struct PCH(table) * t);
+struct GARN(table) * GARN(create_table)(void);
+void GARN(destroy_table)(struct GARN(table) * t);
 
 // If "insert" finds a k-v mapping for the same key, then it behaves like "update.
-enum PCH(outcome) PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   int (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
-   int (*expiry_fun)(const PCH(data_t) * metadata));
-enum PCH(outcome) PCH(delete)(struct PCH(table) * t, PCH(data_t) data);
-enum PCH(outcome) PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
-    int (*apply_fun)(PCH(data_t) * metadata));
+enum GARN(outcome) GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
+   int (*merge_fun)(GARN(data_t) * stored, const GARN(data_t) * new),
+   int (*expiry_fun)(const GARN(data_t) * metadata));
+enum GARN(outcome) GARN(delete)(struct GARN(table) * t, GARN(data_t) data);
+enum GARN(outcome) GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
+    int (*apply_fun)(GARN(data_t) * metadata));

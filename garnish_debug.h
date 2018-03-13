@@ -1,20 +1,19 @@
 /*
-Partial-key cuckoo hash.
-(aka A cuckoo filter with a value associated with each fingerprint)
+Debugging support for libgarnish.
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
-#ifndef PCHAST_DEBUG
-#define PCHAST_DEBUG
+#ifndef GARNISH_DEBUG
+#define GARNISH_DEBUG
 
-extern const char * PCH(outcome_str)[];
+extern const char * GARN(outcome_str)[];
 #define PRINT_OUTCOME(o) { \
-  printf("%s\n", PCH(outcome_str)[o]); \
+  printf("%s\n", GARN(outcome_str)[o]); \
 }
 
-typedef unsigned outcome_count[PCH(END_MARKER)];
+typedef unsigned outcome_count[GARN(END_MARKER)];
 #define RESET_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < PCH(END_MARKER); i++) { \
+  for (int i = 0; i < GARN(END_MARKER); i++) { \
     outcome_count[i] = 0; \
   } \
 }
@@ -22,8 +21,8 @@ typedef unsigned outcome_count[PCH(END_MARKER)];
   outcome_count[o] += 1; \
 }
 #define PRINT_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < PCH(END_MARKER); i++) { \
-    printf("%s=%d ", PCH(outcome_str)[i], outcome_count[i]); \
+  for (int i = 0; i < GARN(END_MARKER); i++) { \
+    printf("%s=%d ", GARN(outcome_str)[i], outcome_count[i]); \
   } \
   printf("\n"); \
 }
@@ -50,4 +49,4 @@ void reset_collision(void);
 bool has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata);
 #endif // REMEMBER_COLLISIONS
 
-#endif // PCHAST_DEBUG
+#endif // GARNISH_DEBUG

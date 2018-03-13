@@ -26,4 +26,4 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #define MULTIPROCESS
 
-#define PCH(X) PCH_ ## P100 ## _ ## X
+#define GARN(X) GARN_ ## P100 ## _ ## X

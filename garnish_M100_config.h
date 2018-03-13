@@ -26,4 +26,4 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #define MULTITHREADED
 
-#define PCH(X) PCH_ ## M100 ## _ ## X
+#define GARN(X) GARN_ ## M100 ## _ ## X

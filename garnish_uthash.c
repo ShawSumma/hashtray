@@ -1,20 +1,20 @@
 /*
-Instantiating pchast API using uthash, for testing.
+Instantiating garnish API using uthash, for testing.
 Nik Sultana, University of Pennsylvania, February 2018
 */
 
 // NOTE I only define this for specific experiments.
 //#define INFINITE_TABLE
 
-#ifdef PCHAST_UTHASH_DEBUG
+#ifdef GARNISH_UTHASH_DEBUG
 #include <stdio.h>
-#endif // PCHAST_UTHASH_DEBUG
+#endif // GARNISH_UTHASH_DEBUG
 
 #include "uthash.h"
 
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
 #include <assert.h>
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
 #ifndef MULTITHREADED
 #error This table instance requires MULTITHREADED
@@ -23,34 +23,34 @@ Nik Sultana, University of Pennsylvania, February 2018
 #endif // MULTITHREADED
 
 struct entry {
-   PCH(data_t) key; // NOTE not using PCH(key_t) since that's the type of fingerprints
-   PCH(value_t) value;
+   GARN(data_t) key; // NOTE not using GARN(key_t) since that's the type of fingerprints
+   GARN(value_t) value;
    UT_hash_handle hh;
 };
 
-struct PCH(table) {
+struct GARN(table) {
   struct entry * table;
   pthread_mutex_t lock;
 };
 
-const char * PCH(outcome_str)[] =
+const char * GARN(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-enum PCH(outcome)
-PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   int (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
-   int (*expiry_fun)(const PCH(data_t) * metadata))
+enum GARN(outcome)
+GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
+   int (*merge_fun)(GARN(data_t) * stored, const GARN(data_t) * new),
+   int (*expiry_fun)(const GARN(data_t) * metadata))
 {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (NULL == merge_fun);
   assert (NULL == expiry_fun);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
   int error = pthread_mutex_lock(&(t->lock));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #ifndef INFINITE_TABLE
   // Enforce TABLE_SIZE unless modelling perfection
@@ -74,18 +74,18 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
 //  if (HASH_COUNT(t->table) > 800000/*FIXME const*/) {
 
     // Simple eviction policy:
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
     assert (NULL != t->table);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
     struct entry * first = t->table;
     HASH_DEL(t->table, first); // Remove first element in the table
     free(first);
   }
 #endif // INFINITE_TABLE
 
-#ifdef PCHAST_UTHASH_DEBUG
+#ifdef GARNISH_UTHASH_DEBUG
   printf("=%d\n", HASH_COUNT(t->table));
-#endif // PCHAST_UTHASH_DEBUG
+#endif // GARNISH_UTHASH_DEBUG
   struct entry * record = malloc(sizeof(*record));
   record->key = data;
   record->value = metadata;
@@ -93,79 +93,79 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   HASH_ADD_INT/*FIXME assume specific type of key*/(t->table, key, record);
 
   error = pthread_mutex_unlock(&(t->lock));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
-  return PCH(OK); // FIXME const
+  return GARN(OK); // FIXME const
 }
 
-enum PCH(outcome)
-PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
+enum GARN(outcome)
+GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
 {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (0);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
   free(-1);
-  return PCH(OK); // NOTE control shouldn't arrive here.
+  return GARN(OK); // NOTE control shouldn't arrive here.
 }
 
-enum PCH(outcome)
-PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
-    int (*apply_fun)(PCH(data_t) * metadata))
+enum GARN(outcome)
+GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
+    int (*apply_fun)(GARN(data_t) * metadata))
 {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (NULL == apply_fun);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
-  enum PCH(outcome) result = PCH(NOT_FOUND);
+  enum GARN(outcome) result = GARN(NOT_FOUND);
   struct entry * retrieved = NULL;
 
   int error = pthread_mutex_lock(&(t->lock));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
-#ifdef PCHAST_UTHASH_DEBUG
+#ifdef GARNISH_UTHASH_DEBUG
   printf("[%d\n", HASH_COUNT(t->table));
-#endif // PCHAST_UTHASH_DEBUG
+#endif // GARNISH_UTHASH_DEBUG
   HASH_FIND_INT/*FIXME assume specific type of key*/(t->table, &data, retrieved);
   if (NULL != retrieved) {
     *metadata = retrieved->value;
-    result = PCH(OK);
+    result = GARN(OK);
   }
 
   error = pthread_mutex_unlock(&(t->lock));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
   return result;
 }
 
-struct PCH(table) *
-PCH(create_table)(void)
+struct GARN(table) *
+GARN(create_table)(void)
 {
-  struct PCH(table) * result = malloc(sizeof(*result));
+  struct GARN(table) * result = malloc(sizeof(*result));
   result->table = NULL;
 
   int error = pthread_mutex_init(&(result->lock), NULL);
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
   return result;
 }
 
 void
-PCH(destroy_table)(struct PCH(table) * t)
+GARN(destroy_table)(struct GARN(table) * t)
 {
   int error = pthread_mutex_destroy(&(t->lock));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
   // uthash table is destroyed automatically by uthash when it's vacated, so should simply vacate it.
   struct entry * cursor;
@@ -179,12 +179,12 @@ PCH(destroy_table)(struct PCH(table) * t)
 }
 
 int
-PCH(rand_range)(int min, int max)
+GARN(rand_range)(int min, int max)
 {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   assert(min >= 0);
   assert(max >= min);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
   if (min == max) {
     return min;
