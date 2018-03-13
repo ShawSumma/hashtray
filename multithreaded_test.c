@@ -39,6 +39,7 @@ bool USE_PCHAST = false;
 #define SIM_DURATION_IN_CONNECTIONS
 // FIXME i define MAX_NUM_HOSTS since the related array can't be variable-sized.
 //       This is a hack that wastes memory whenever NUM_HOSTS < MAX_NUM_HOST.
+// NOTE For bigger experiments I set MAX_NUM_HOSTS=NUM_HOSTS=1000000
 #define MAX_NUM_HOSTS 10000
 int NUM_HOSTS = 10000;
 // The percentage of NUM_HOSTS that are "good".
