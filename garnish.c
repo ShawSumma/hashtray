@@ -34,6 +34,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include <errno.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 #if defined(MULTITHREADED) && defined(MULTIPROCESS)
@@ -705,6 +706,54 @@ GARN(destroy_table)(struct GARN(table) * t)
 #else
   free(t);
 #endif // MULTIPROCESS
+}
+
+int
+GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
+{
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
+  *buffer = malloc(buffer_size);
+  if (NULL == *buffer) {
+    return -1;
+  }
+
+  int idx = 0;
+
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+    lock_index(t, table_idx);
+    for (int entry_idx = 0; entry_idx < NUM_CELL_ENTRIES; entry_idx++) {
+      memcpy(*buffer + idx, &(t->cell[table_idx].entry[entry_idx]), sizeof(struct entry));
+      idx += sizeof(struct entry);
+    }
+    unlock_index(t, table_idx);
+  }
+
+  return buffer_size;
+}
+
+int
+GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(table) * t)
+{
+  if (NULL == buffer) {
+    return -1;
+  }
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
+  if (buffer_size != buffer_len) {
+    return -1;
+  }
+
+  int idx = 0;
+
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+    lock_index(t, table_idx);
+    for (int entry_idx = 0; entry_idx < NUM_CELL_ENTRIES; entry_idx++) {
+      memcpy(&(t->cell[table_idx].entry[entry_idx]), buffer + idx, sizeof(struct entry));
+      idx += sizeof(struct entry);
+    }
+    unlock_index(t, table_idx);
+  }
+
+  return 0;
 }
 
 int

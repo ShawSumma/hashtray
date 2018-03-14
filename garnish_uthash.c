@@ -179,6 +179,50 @@ GARN(destroy_table)(struct GARN(table) * t)
 }
 
 int
+GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
+{
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
+  *buffer = malloc(buffer_size);
+  if (NULL == *buffer) {
+    return -1;
+  }
+
+  int idx = 0;
+
+  struct entry * cursor;
+  struct entry * tmp;
+  HASH_ITER(hh, t->table, cursor, tmp) {
+    memcpy(*buffer + idx, cursor, sizeof(struct entry));
+    idx += sizeof(struct entry);
+  }
+
+  return buffer_size;
+}
+
+int
+GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(table) * t)
+{
+  if (NULL == buffer) {
+    return -1;
+  }
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
+  if (buffer_size != buffer_len) {
+    return -1;
+  }
+
+  int idx = 0;
+
+  struct entry * cursor;
+  struct entry * tmp;
+  HASH_ITER(hh, t->table, cursor, tmp) {
+    memcpy(cursor, buffer + idx, sizeof(struct entry));
+    idx += sizeof(struct entry);
+  }
+
+  return 0;
+}
+
+int
 GARN(rand_range)(int min, int max)
 {
 #ifdef GARNISH_ASSERT
