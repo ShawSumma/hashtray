@@ -18,9 +18,9 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include "stdio.h"
 #endif // REMEMBER_COLLISIONS
 
-#ifdef LOG_INSERTS
+#ifdef GARNISH_LOG_INSERTS
 #include <stdio.h>
-#endif // LOG_INSERTS
+#endif // GARNISH_LOG_INSERTS
 
 #ifdef REMEMBER_LOSS
 #include <assert.h>
@@ -373,10 +373,10 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 {
   GARN(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-#ifdef LOG_INSERTS
+#ifdef GARNISH_LOG_INSERTS
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
-#endif // LOG_INSERTS
+#endif // GARNISH_LOG_INSERTS
 
   lock_indices(t, is);
 
