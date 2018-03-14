@@ -394,14 +394,14 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
         collision.entry[collision_idx].value = metadata;
         collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
         collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
-#ifdef DESCRIBE_COLLISIONS
+#ifdef GARNISH_DESCRIBE_COLLISIONS
         printf("(%d, %d) collided with (%d, %d) on table_idx=%d, entry=%d\n",
         collision.entry[collision_idx].key,
         collision.entry[collision_idx].value,
         collision.collided_with[collision_idx].key,
         collision.collided_with[collision_idx].value,
         table_idx, i);
-#endif // DESCRIBE_COLLISIONS
+#endif // GARNISH_DESCRIBE_COLLISIONS
         collision_idx += 1;
       }
     }
