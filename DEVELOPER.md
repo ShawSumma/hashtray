@@ -22,5 +22,15 @@ whereas [garnish_S1000_config.h]() supports 1000 cells and isn't thread-safe.
 # Adding hashing function implementations
 (TODO)
 
-# Wrapping existing table implementations
-(TODO)
+# Wrapping existing table implementations (to instantiate derivated APIs)
+Applications can use libgarnish's API when using existing/external hashtable implementations.
+This makes it easy to swap hashtable implementations for experimentation.
+
+An example of this approach is given using [uthash](https://github.com/troydhanson/uthash).
+The wrapping of this library is given in [garnish_uthash.c]().
+To try it out, run `make garnish_M100_uthash.o`.
+To see an example of this in use in one of the tests, run `make garnish_multithreaded_uthash`.
+
+To set things up, clone the [uthash](https://github.com/troydhanson/uthash) repo.
+and update the `UTHASH` variable in [Makefile]() to the repo's path.
+By default I set `UTHASH=uthash` since I clone uthash within garnish's directory.

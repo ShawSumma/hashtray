@@ -65,7 +65,7 @@ garnish_2tables: headers 2tables.c garnish_M100.o garnish_S1000.o
 garnish_multiprocess: multiprocess_test.o garnish_P100.o
 	$(CC) $(CFLAGS) multiprocess_test.o garnish_P100.o -o $@
 
-# NOTE using uthash is optional. To use it clone the uthash repo in the UTHASH directory, and build the uthash-related targets.
+# NOTE using uthash is optional. To use it clone the uthash repo in the UTHASH directory, and build the uthash-related targets. See DEVELOPER.md for more info.
 UTHASH=uthash
 garnish_M100_uthash.o : garnish_uthash.c
 	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -I$(UTHASH)/include -c $(CFLAGS) garnish_uthash.c -o $@
