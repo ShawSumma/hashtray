@@ -472,12 +472,12 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 
   // At this point we haven't been able to make the insertion, since both cells
   // were already full.
-#ifdef FAIL_EAGERLY
+#ifdef GARNISH_FAIL_EAGERLY
   // Unlock everything and give up.
   unlock_indices_except(t, is, NULL);
 
   return GARN(BLOCKS_FULL);
-#else // ndef FAIL_EAGERLY
+#else // ndef GARNISH_FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
 
@@ -548,7 +548,7 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
   return GARN(GAVE_UP);
-#endif // FAIL_EAGERLY
+#endif // GARNISH_FAIL_EAGERLY
 }
 
 enum GARN(outcome)
