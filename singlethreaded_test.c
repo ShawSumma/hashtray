@@ -208,11 +208,11 @@ generate_test_input(void)
     result[i].datum = (GARN(data_t))i;
     result[i].metadatum = (GARN(value_t))i;
   }
-#ifdef LOG_INSERTS
+#ifdef GARNISH_LOG_INSERTS
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
     printf("Test entry %d: (%d, %d)\n", i, result[i].datum, result[i].metadatum);
   }
-#endif // LOG_INSERTS
+#endif // GARNISH_LOG_INSERTS
   return result;
 }
 

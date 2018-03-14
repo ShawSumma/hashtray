@@ -18,9 +18,9 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include "stdio.h"
 #endif // REMEMBER_COLLISIONS
 
-#ifdef LOG_INSERTS
+#ifdef GARNISH_LOG_INSERTS
 #include <stdio.h>
-#endif // LOG_INSERTS
+#endif // GARNISH_LOG_INSERTS
 
 #ifdef REMEMBER_LOSS
 #include <assert.h>
@@ -373,10 +373,10 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 {
   GARN(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-#ifdef LOG_INSERTS
+#ifdef GARNISH_LOG_INSERTS
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
-#endif // LOG_INSERTS
+#endif // GARNISH_LOG_INSERTS
 
   lock_indices(t, is);
 
@@ -394,14 +394,14 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
         collision.entry[collision_idx].value = metadata;
         collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
         collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
-#ifdef DESCRIBE_COLLISIONS
+#ifdef GARNISH_DESCRIBE_COLLISIONS
         printf("(%d, %d) collided with (%d, %d) on table_idx=%d, entry=%d\n",
         collision.entry[collision_idx].key,
         collision.entry[collision_idx].value,
         collision.collided_with[collision_idx].key,
         collision.collided_with[collision_idx].value,
         table_idx, i);
-#endif // DESCRIBE_COLLISIONS
+#endif // GARNISH_DESCRIBE_COLLISIONS
         collision_idx += 1;
       }
     }
@@ -472,12 +472,12 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 
   // At this point we haven't been able to make the insertion, since both cells
   // were already full.
-#ifdef FAIL_EAGERLY
+#ifdef GARNISH_FAIL_EAGERLY
   // Unlock everything and give up.
   unlock_indices_except(t, is, NULL);
 
   return GARN(BLOCKS_FULL);
-#else // ndef FAIL_EAGERLY
+#else // ndef GARNISH_FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
 
@@ -548,7 +548,7 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
   return GARN(GAVE_UP);
-#endif // FAIL_EAGERLY
+#endif // GARNISH_FAIL_EAGERLY
 }
 
 enum GARN(outcome)
