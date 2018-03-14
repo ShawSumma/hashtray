@@ -381,6 +381,44 @@ mix_insert_lookup_test(void)
   PRINT_OUTCOME_STATS(oc_lookup_notexpectfind)
 }
 
+void
+test_serialisation(struct GARN(table) * table1, struct test_data * test_dataset)
+{
+  char * buffer1 = NULL;
+  int buf_size1 = GARN(serialise_table)(table1, &buffer1);
+  assert(buf_size1 > 0);
+
+  struct GARN(table) * table2 = GARN(create_table)();
+  int result = GARN(deserialise_table)(buffer1, buf_size1, table2);
+  assert(result >= 0);
+
+  char * buffer2 = NULL;
+  int buf_size2 = GARN(serialise_table)(table2, &buffer2);
+  assert(buf_size1 == buf_size2);
+
+  for (int i = 0; i < buf_size2; i++) {
+    assert(buffer1[i] == buffer2[i]);
+  }
+
+  enum GARN(outcome) o1;
+  enum GARN(outcome) o2;
+  GARN(value_t) queried_metadata1 = 0;
+  GARN(value_t) queried_metadata2 = 0;
+  for (int i = 0; i < TEST_DATASET_SIZE; i++) {
+    o1 = GARN(lookup)(table1, test_dataset[i].datum, &queried_metadata1, NULL);
+    o2 = GARN(lookup)(table2, test_dataset[i].datum, &queried_metadata2, NULL);
+    assert(o1 == o2);
+    assert(queried_metadata1 == queried_metadata2);
+    if (GARN(OK) == o1) {
+      // assert(queried_metadata1 == test_dataset[i].metadatum); This is too
+      //    strong since might have had condition. See code around the
+      //    comment "Check if this fails because of collision" above.
+    }
+  }
+
+  printf("tested serialisation.\n");
+}
+
 int
 main()
 {
@@ -440,6 +478,8 @@ main()
   printf("Random insertion/testing/both of data in an originally-empty table.\n");
   mix_insert_lookup_test();
   printf("\n");
+
+  test_serialisation(my_tab, test_dataset);
 
   GARN(destroy_table)(my_tab);
   free(test_dataset);
