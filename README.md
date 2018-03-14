@@ -19,6 +19,7 @@ debug mode can be used by prepending a flag, e.g., `DEBUGGING=1 make garnish_mul
 
 # Using
 See tests for examples.
+There is also a [developer documentation](DEVELOPER.md).
 
 # Getting support
 Email the author.
