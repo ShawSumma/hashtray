@@ -24,6 +24,6 @@ Nik Sultana, University of Pennsylvania, November 2017
 // between 0 and BACKOFF_SLEEP_MICROSEC.
 #define BACKOFF_SLEEP_MICROSEC 10
 
-#define MULTIPROCESS
+#define MULTITHREADED
 
-#define PCH(X) PCH_ ## P100 ## _ ## X
+#define GARN(X) GARN_ ## M100 ## _ ## X

@@ -1,5 +1,6 @@
 /*
-Multithreaded test of using PCHAST
+Multithreaded test of using libgarnish.
+Simulates requests being serviced in a network of hosts, using the table to remember hostile hosts.
 Nik Sultana, University of Pennsylvania, January 2018
 */
 
@@ -16,11 +17,11 @@ Nik Sultana, University of Pennsylvania, January 2018
 #include <string.h>
 #include <unistd.h>
 
-#include "pchast.h"
+#include "garnish.h"
 
 static void print_server_info(void);
 
-bool USE_PCHAST = false;
+bool USE_GARNISH = false;
 // Number of servers in the simulation. These will accept connections concurrently.
 #define NUM_SERVERS 10
 // I define this to help us see the "hit" in the number of connections that can
@@ -97,7 +98,7 @@ struct server_info_t {
   uint32_t host_classified_correct;
   uint32_t host_classified_incorrect;
 };
-struct PCH(table) * tbl = NULL;
+struct GARN(table) * tbl = NULL;
 struct server_info_t server_info[NUM_SERVERS];
 pthread_t tid[NUM_SERVERS];
 
@@ -163,7 +164,7 @@ print_server_info(void) {
 }
 
 struct host_info_t {
-  PCH(value_t) id;
+  GARN(value_t) id;
   bool is_good;
   pthread_mutex_t lock;
   uint8_t current_num_connections;
@@ -203,10 +204,10 @@ static void
 generate_hosts(void) {
   int error;
   for (int i = 0; i < NUM_HOSTS; i++) {
-    host_info[i].id = (PCH(value_t))i; // Ensure the id is unique (as long as PCH(value_t) is big enough.
+    host_info[i].id = (GARN(value_t))i; // Ensure the id is unique (as long as GARN(value_t) is big enough.
     host_info[i].current_num_connections = 0;
 
-    int goodness = PCH(rand_range)(1, 100);
+    int goodness = GARN(rand_range)(1, 100);
     host_info[i].is_good = (goodness <= PERCENTAGE_GOOD_HOSTS);
 
     error = pthread_mutex_init(&(host_info[i].lock), NULL);
@@ -241,11 +242,11 @@ pick_host(void) {
   int idx;
   int iterations = MAX_ITERATIONS;
   for (; iterations > 0; iterations--) {
-    idx = PCH(rand_range)(0, NUM_HOSTS - 1);
+    idx = GARN(rand_range)(0, NUM_HOSTS - 1);
     int error = pthread_mutex_trylock(&(host_info[idx].lock));
     if (! error) {
       if (host_info[idx].current_num_connections < MAX_CONNS) {
-        bool conn_should_be_good = (PCH(rand_range)(1, 100) <= PERCENTAGE_GOOD_CONNECTION);
+        bool conn_should_be_good = (GARN(rand_range)(1, 100) <= PERCENTAGE_GOOD_CONNECTION);
         if (conn_should_be_good == host_info[idx].is_good) {
           break;
         }
@@ -325,9 +326,9 @@ server_main(void * arg) {
 
   int error;
 
-  enum PCH(outcome) o;
+  enum GARN(outcome) o;
   while (! sinfo->shutdown) {
-    sleep((uint32_t)PCH(rand_range)(0, MAX_SLEEP));
+    sleep((uint32_t)GARN(rand_range)(0, MAX_SLEEP));
 
 #ifdef SIM_DURATION_IN_CONNECTIONS
     error = pthread_mutex_lock(&connections_countdown_lock);
@@ -362,20 +363,20 @@ server_main(void * arg) {
 
     uint32_t delay = 0;
 
-    PCH(value_t) classification = (PCH(value_t))(-1);
-    if (USE_PCHAST) {
-      o = PCH(lookup)(tbl, hinfo->id, &classification, NULL); // FIXME could time this.
+    GARN(value_t) classification = (GARN(value_t))(-1);
+    if (USE_GARNISH) {
+      o = GARN(lookup)(tbl, hinfo->id, &classification, NULL); // FIXME could time this.
     } else {
-      o = PCH(NOT_FOUND);
+      o = GARN(NOT_FOUND);
     }
 
     switch (o) {
-    case PCH(OK):
+    case GARN(OK):
       // FIXME could check for collision.
 
       sinfo->host_known += 1;
 
-      assert(USE_PCHAST);
+      assert(USE_GARNISH);
 
       switch (classification) {
         case BAD_HOST:
@@ -414,7 +415,7 @@ server_main(void * arg) {
 
 
       break;
-    case PCH(NOT_FOUND):
+    case GARN(NOT_FOUND):
       sinfo->host_unknown += 1;
 
       if (! hinfo->is_good) {
@@ -422,18 +423,18 @@ server_main(void * arg) {
         printf("-"); fflush(stdout);
 #endif // SHOW_PROGRESS
         classification = BAD_HOST;
-        delay = (uint32_t)PCH(rand_range)(MIN_STALL, MAX_STALL);
+        delay = (uint32_t)GARN(rand_range)(MIN_STALL, MAX_STALL);
       } else {
 #ifdef SHOW_PROGRESS
         printf("+"); fflush(stdout);
 #endif // SHOW_PROGRESS
 #ifndef PERFECT_GOOD
-        delay = (uint32_t)PCH(rand_range)(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
+        delay = (uint32_t)GARN(rand_range)(0, MIN_STALL); // We add some noise, since even "good" hosts might appear imperfect.
 #endif // PERFECT_GOOD
         classification = GOOD_HOST;
       }
 
-      if (USE_PCHAST) {
+      if (USE_GARNISH) {
 #ifndef USE_PERFECT_CLASSIFIER
         // We redefine "classification" based on observed time, rather than based on ground truth (hinfo->is_good).
         if (delay > sinfo->avg_duration + DELAY_TOLERANCE) {
@@ -453,7 +454,7 @@ server_main(void * arg) {
         }
 #endif // USE_PERFECT_CLASSIFIER
 
-        o = PCH(insert)(tbl, hinfo->id, classification, NULL, NULL); // FIXME could time this.
+        o = GARN(insert)(tbl, hinfo->id, classification, NULL, NULL); // FIXME could time this.
       }
 
       // FIXME could also model reclassification at some sampling rate, to
@@ -502,7 +503,7 @@ main(int argc, char * argv[])
       assert(NUM_HOSTS <= MAX_NUM_HOSTS);
       break;
     case 'p':
-      USE_PCHAST = true;
+      USE_GARNISH = true;
       break;
     case 'u':
       MIN_STALL = (int)strtol(optarg, (char **)NULL, 10);
@@ -565,7 +566,7 @@ main(int argc, char * argv[])
     printf("SIM_DURATION_IN_CONNECTIONS=no\n");
 #endif // SIM_DURATION_IN_CONNECTIONS
 
-    printf("USE_PCHAST=%d\n", USE_PCHAST);
+    printf("USE_GARNISH=%d\n", USE_GARNISH);
     printf("NUM_SERVERS=%d\n", NUM_SERVERS);
     printf("SIM_DURATION_SECS=%d\n", SIM_DURATION_SECS);
     printf("SIM_DURATION_CONNS=%d\n", SIM_DURATION_CONNS);
@@ -602,10 +603,10 @@ main(int argc, char * argv[])
   print_host_info(false);
 #endif // VERBOSE
 
-  tbl = PCH(create_table)();
+  tbl = GARN(create_table)();
 
   for (int i = 0; i < NUM_SERVERS; i++) {
-    server_info[i].seed = PCH(rand_range)(0, INT_MAX);
+    server_info[i].seed = GARN(rand_range)(0, INT_MAX);
     server_info[i].shutdown = false;
     server_info[i].idx = (uint8_t)i;
     error = pthread_create(&(tid[i]), NULL, &server_main, (void *)&(server_info[i]));
@@ -619,7 +620,7 @@ main(int argc, char * argv[])
     pthread_join(tid[i], NULL);
   }
 
-  PCH(destroy_table)(tbl);
+  GARN(destroy_table)(tbl);
   shutdown_hosts();
 
 #ifdef SIM_DURATION_IN_CONNECTIONS

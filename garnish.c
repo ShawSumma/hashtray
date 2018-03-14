@@ -1,6 +1,6 @@
 /*
 Partial-key cuckoo hash.
-(aka A cuckoo filter with a value associated with each fingerprint)
+(aka A cuckoo filter with a value associated with each fingerprint/key)
 Nik Sultana, University of Pennsylvania, November 2017
 
 NOTE: this code is thread-safe in "regular mode", but the debug
@@ -9,9 +9,9 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 */
 
 
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
 #include <assert.h>
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
 #ifdef REMEMBER_COLLISIONS
 #include <assert.h>
@@ -28,7 +28,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #endif // REMEMBER_LOSS
 
 #if defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
-#include "pchast_debug.h"
+#include "garnish_debug.h"
 #endif // defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
 
 #include <errno.h>
@@ -57,29 +57,29 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #endif // MULTIPROCESS
 
 struct idxs {
-  PCH(key_t) idx[CHOICES];
+  GARN(key_t) idx[CHOICES];
 };
 
-static PCH(key_t) alt_idx(PCH(key_t) idx, PCH(key_t) fingerprint);
-static struct idxs idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint);
+static GARN(key_t) alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint);
+static struct idxs idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint);
 
-static PCH(key_t) fingerprint_of_DATA_TYPE(PCH(data_t) data);
+static GARN(key_t) fingerprint_of_DATA_TYPE(GARN(data_t) data);
 
 // FIXME ideally hashing functions would be parameters
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
-static PCH(key_t) hash_of_KEY_TYPE(int k, PCH(key_t) data);
+static GARN(key_t) hash_of_KEY_TYPE(int k, GARN(key_t) data);
 
 struct entry {
   bool clear;
-  PCH(key_t) key;
-  PCH(value_t) value;
+  GARN(key_t) key;
+  GARN(value_t) value;
 };
 
 struct cell {
   struct entry entry[NUM_CELL_ENTRIES];
 };
 
-struct PCH(table) {
+struct GARN(table) {
   struct cell cell[TABLE_SIZE];
 #ifdef MULTITHREADED
   pthread_mutex_t lock[TABLE_SIZE];
@@ -116,7 +116,7 @@ reset_overfill(void)
 }
 
 bool
-has_overflowed(PCH(data_t) data) {
+has_overflowed(GARN(data_t) data) {
   // Check if the item is in the "overflow" array.
   bool item_found = false;
   for (int idx = 0; idx < overfill_idx; idx++) {
@@ -157,9 +157,9 @@ reset_collision(void)
 }
 
 bool
-has_collided(PCH(data_t) data, PCH(value_t) queried_metadata) {
+has_collided(GARN(data_t) data, GARN(value_t) queried_metadata) {
   assert(collision_idx > 0);
-  PCH(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
+  GARN(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
   bool found_collision = false;
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
@@ -175,11 +175,11 @@ has_collided(PCH(data_t) data, PCH(value_t) queried_metadata) {
 }
 #endif // REMEMBER_COLLISIONS
 
-const char * PCH(outcome_str)[] =
+const char * GARN(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-static PCH(key_t)
-hash_of_KEY_TYPE(int k, PCH(key_t) data)
+static GARN(key_t)
+hash_of_KEY_TYPE(int k, GARN(key_t) data)
 {
 /* FIXME old
   int hash = data + (data * k) + k;
@@ -194,11 +194,11 @@ hash_of_KEY_TYPE(int k, PCH(key_t) data)
   // NOTE based on djb2 at: http://www.cse.yorku.ca/~oz/hash.html
   long long hash = 5381 * k + k;
   char * buf = (char *)&data;
-  for (unsigned i = 0; i < sizeof(PCH(data_t)); i++) {
+  for (unsigned i = 0; i < sizeof(GARN(data_t)); i++) {
     hash = hash * 33 ^ buf[i];
   }
 
-  return ((PCH(key_t))hash) % TABLE_SIZE;
+  return ((GARN(key_t))hash) % TABLE_SIZE;
 }
 
 static uint16_t
@@ -213,30 +213,30 @@ hash_of_uint32_to_uint16(uint32_t data)
     hash_of_KEY_TYPE(1, conversion.as_uint16_t[1]);
 }
 
-static PCH(key_t)
-fingerprint_of_DATA_TYPE(PCH(data_t) data)
+static GARN(key_t)
+fingerprint_of_DATA_TYPE(GARN(data_t) data)
 {
   return hash_of_uint32_to_uint16(data);
 }
 
-static PCH(key_t)
-alt_idx(PCH(key_t) idx, PCH(key_t) fingerprint)
+static GARN(key_t)
+alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint)
 {
   // FIXME assuming CHOICE==2
-  PCH(key_t) h1 = hash_of_KEY_TYPE(0, fingerprint);
-  PCH(key_t) h2 = hash_of_KEY_TYPE(1, fingerprint);
+  GARN(key_t) h1 = hash_of_KEY_TYPE(0, fingerprint);
+  GARN(key_t) h2 = hash_of_KEY_TYPE(1, fingerprint);
   if (idx == h1) {
     return h2;
   } else {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
     assert(idx == h2);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
     return h1;
   }
 }
 
 struct idxs
-idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
+idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint)
 {
   struct idxs result;
   *fingerprint = fingerprint_of_DATA_TYPE(data);
@@ -244,17 +244,17 @@ idxs_of_DATA_TYPE(PCH(data_t) data, PCH(key_t) * fingerprint)
     result.idx[i] = hash_of_KEY_TYPE(i, *fingerprint);
   }
   // FIXME how do we ensure that, for all i and j, result.idx[i] != result.idx[j]
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   for (int i = 0; i < CHOICES; i++) {
     assert((int)result.idx[i] >= 0);
     assert((int)result.idx[i] < TABLE_SIZE);
   }
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
   return result;
 }
 
 static inline void
-unlock_index(struct PCH(table) * t, int table_idx) {
+unlock_index(struct GARN(table) * t, int table_idx) {
   int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
@@ -264,21 +264,21 @@ unlock_index(struct PCH(table) * t, int table_idx) {
 
 #elif defined(MULTITHREADED)
   error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #elif defined(MULTIPROCESS)
   error = sem_post(t->lock[table_idx]);
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #endif
 }
 
 static inline void
-lock_index(struct PCH(table) * t, int table_idx) {
+lock_index(struct GARN(table) * t, int table_idx) {
   int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
@@ -288,21 +288,21 @@ lock_index(struct PCH(table) * t, int table_idx) {
 
 #elif defined(MULTITHREADED)
   error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #elif defined(MULTIPROCESS)
   error = sem_wait(t->lock[table_idx]);
-#ifdef PCHAST_ASSERT
-  assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #endif
 }
 
 static inline void
-lock_indices(struct PCH(table) * t, struct idxs is) {
+lock_indices(struct GARN(table) * t, struct idxs is) {
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -347,7 +347,7 @@ lock_indices(struct PCH(table) * t, struct idxs is) {
 }
 
 static inline void
-unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlock) {
+unlock_indices_except(struct GARN(table) * t, struct idxs is, int * opt_dont_unlock) {
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -366,12 +366,12 @@ unlock_indices_except(struct PCH(table) * t, struct idxs is, int * opt_dont_unlo
 #endif
 }
 
-enum PCH(outcome)
-PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
-   int (*merge_fun)(PCH(data_t) * stored, const PCH(data_t) * new),
-   int (*expiry_fun)(const PCH(data_t) * metadata))
+enum GARN(outcome)
+GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
+   int (*merge_fun)(GARN(data_t) * stored, const GARN(data_t) * new),
+   int (*expiry_fun)(const GARN(data_t) * metadata))
 {
-  PCH(key_t) fingerprint;
+  GARN(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
 #ifdef LOG_INSERTS
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
@@ -387,9 +387,9 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
       if (!t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         // We judge that a collision has occurred.
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
         assert(collision_idx < NUM_COLLIDED_ENTRIES);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
         collision.entry[collision_idx].key = fingerprint;
         collision.entry[collision_idx].value = metadata;
         collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
@@ -442,10 +442,10 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
 
   int delete = 0;
   if (exists) {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
     assert(!t->cell[table_idx].entry[entry_idx].clear);
     assert(t->cell[table_idx].entry[entry_idx].key == fingerprint);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
     if (NULL == merge_fun) {
       t->cell[table_idx].entry[entry_idx].value = metadata;
     } else {
@@ -464,9 +464,9 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     // We can unlock everything and return.
     unlock_indices_except(t, is, NULL);
     if (0 != delete) {
-      return PCH(NOT_FOUND);
+      return GARN(NOT_FOUND);
     } else {
-      return PCH(OK);
+      return GARN(OK);
     }
   }
 
@@ -476,7 +476,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   // Unlock everything and give up.
   unlock_indices_except(t, is, NULL);
 
-  return PCH(BLOCKS_FULL);
+  return GARN(BLOCKS_FULL);
 #else // ndef FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
@@ -485,8 +485,8 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   // choose _not_ to kick stuff out of and continue.
   unlock_indices_except(t, is, &table_idx);
 
-  PCH(key_t) swapped_key;
-  PCH(value_t) swapped_value;
+  GARN(key_t) swapped_key;
+  GARN(value_t) swapped_value;
   for (int try_num = 0; try_num < MAX_KICKOUTS; try_num++) {
     int entry = (int)rand() % NUM_CELL_ENTRIES;
     // FIXME could iterate through entries to find a free one, rather do
@@ -519,7 +519,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
       unlock_index(t, table_idx);
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
-      return PCH(OK);
+      return GARN(OK);
     }
 
     fingerprint = swapped_key;
@@ -530,7 +530,7 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
     //      that is, pick some other fingerprint in the current block and
     //      attempt to kick it, rather than the current fingerprint; but it's
     //      not obvious which to pick, so the current approach feels simplest.
-    table_idx = (int)alt_idx((PCH(key_t))table_idx, fingerprint);
+    table_idx = (int)alt_idx((GARN(key_t))table_idx, fingerprint);
     lock_index(t, table_idx);
   }
 
@@ -547,15 +547,15 @@ PCH(insert)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) metadata,
   overfill.entry[overfill_idx].value = metadata;
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
-  return PCH(GAVE_UP);
+  return GARN(GAVE_UP);
 #endif // FAIL_EAGERLY
 }
 
-enum PCH(outcome)
-PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
+enum GARN(outcome)
+GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
 {
-  enum PCH(outcome) result = PCH(NOT_FOUND);
-  PCH(key_t) fingerprint;
+  enum GARN(outcome) result = GARN(NOT_FOUND);
+  GARN(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -565,12 +565,12 @@ PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].clear = true;
-        result = PCH(OK);
+        result = GARN(OK);
         break;
       }
     }
 
-    if (PCH(OK) == result) {
+    if (GARN(OK) == result) {
       break;
     }
   }
@@ -579,13 +579,13 @@ PCH(delete)(struct PCH(table) * t, PCH(data_t) data)
   return result;
 }
 
-enum PCH(outcome)
-PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
-    int (*apply_fun)(PCH(data_t) * metadata))
+enum GARN(outcome)
+GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
+    int (*apply_fun)(GARN(data_t) * metadata))
 {
   bool done = false;
-  enum PCH(outcome) result = PCH(NOT_FOUND);
-  PCH(key_t) fingerprint;
+  enum GARN(outcome) result = GARN(NOT_FOUND);
+  GARN(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -602,10 +602,10 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
 
         if (0 != delete) {
           t->cell[table_idx].entry[i].clear = 1;
-          result = PCH(NOT_FOUND);
+          result = GARN(NOT_FOUND);
         } else {
           *metadata = t->cell[table_idx].entry[i].value;
-          result = PCH(OK);
+          result = GARN(OK);
         }
         done = true;
         break;
@@ -625,21 +625,21 @@ PCH(lookup)(struct PCH(table) * t, PCH(data_t) data, PCH(data_t) * metadata,
 static void
 semaphore_name(char * buf, int i) {
   // FIXME not checking buf size
-  sprintf(buf, "/PCH_sem_%d"/*FIXME const -- make this into parameter*/,
+  sprintf(buf, "/GARN_sem_%d"/*FIXME const -- make this into parameter*/,
       i);
 }
 #endif // MULTIPROCESS
 
-struct PCH(table) *
-PCH(create_table)(void)
+struct GARN(table) *
+GARN(create_table)(void)
 {
 #ifdef MULTIPROCESS
-  struct PCH(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-#ifdef PCHAST_ASSERT
-    assert(MAP_FAILED != t); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+  struct GARN(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+#ifdef GARNISH_ASSERT
+    assert(MAP_FAILED != t); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 #else
-  struct PCH(table) * t = malloc(sizeof(*t));
+  struct GARN(table) * t = malloc(sizeof(*t));
 #endif // MULTIPROCESS
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
@@ -647,9 +647,9 @@ PCH(create_table)(void)
     }
 #ifdef MULTITHREADED
     int error = pthread_mutex_init(&(t->lock[table_idx]), NULL);
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+    assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
@@ -661,9 +661,9 @@ PCH(create_table)(void)
     char name[20];
     semaphore_name(name, table_idx);
     t->lock[table_idx] = sem_open(name, O_CREAT /* FIXME | O_EXCL*/, 0600, 1);
-#ifdef PCHAST_ASSERT
-    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 #endif
 #endif // MULTIPROCESS
   }
@@ -671,49 +671,49 @@ PCH(create_table)(void)
 }
 
 void
-PCH(destroy_table)(struct PCH(table) * t)
+GARN(destroy_table)(struct GARN(table) * t)
 {
   int error;
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
 #ifdef MULTITHREADED
     error = pthread_mutex_destroy(&(t->lock[table_idx]));
-#ifdef PCHAST_ASSERT
-    assert(!error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+    assert(!error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
     error = sem_close(t->lock[table_idx]);
-#ifdef PCHAST_ASSERT
-    assert(0 == error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+    assert(0 == error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
     char name[20];
     semaphore_name(name, table_idx);
     error = sem_unlink(name);
-#ifdef PCHAST_ASSERT
-    assert(0 == error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+    assert(0 == error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 
 #endif // MULTIPROCESS
   }
 #ifdef MULTIPROCESS
   error = munmap(t, sizeof(*t));
-#ifdef PCHAST_ASSERT
-  assert(0 == error); // FIXME check when !PCHAST_ASSERT
-#endif // PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
+  assert(0 == error); // FIXME check when !GARNISH_ASSERT
+#endif // GARNISH_ASSERT
 #else
   free(t);
 #endif // MULTIPROCESS
 }
 
 int
-PCH(rand_range)(int min, int max)
+GARN(rand_range)(int min, int max)
 {
-#ifdef PCHAST_ASSERT
+#ifdef GARNISH_ASSERT
   assert(min >= 0);
   assert(max >= min);
-#endif // PCHAST_ASSERT
+#endif // GARNISH_ASSERT
 
   if (min == max) {
     return min;
