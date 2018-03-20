@@ -753,6 +753,7 @@ GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * r
   return;
 }
 
+// NOTE DRY principle: this code is very similar to that of GARN(keys_of_table)() (except that it uses values instead of keys).
 void
 GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int * result_array_len)
 {
