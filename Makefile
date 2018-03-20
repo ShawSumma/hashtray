@@ -18,7 +18,7 @@ CFLAGS+=-Wall -Wextra -Wformat=2 -Wswitch-default -Wcast-align -Wpointer-arith \
 
 .PHONY: clean tests dist headers
 
-dist: singlethreaded_test.c multithreaded_test.c garnish.c garnish.h garnish_M100_config.h garnish_S1000_config.h Makefile 2tables.c garnish_debug.h garnish_P100_config.h multiprocess_test.c README.md
+dist: singlethreaded_test.c multithreaded_test.c garnish.c garnish.h garnish_M100_config.h garnish_S1000_config.h Makefile 2tables.c garnish_debug.h garnish_P100_config.h multiprocess_test.c README.md DEVELOPER.md
 	tar czvf garnish.tgz $^
 
 libgarnish.a: garnish_M100.o garnish_S1000.o garnish_P100.o
