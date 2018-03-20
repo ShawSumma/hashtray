@@ -744,7 +744,7 @@ GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * r
       return;
     }
     for (*result_array_len = 0; *result_array_len <= (int)idx; (*result_array_len)++) {
-      *result_array[*result_array_len] = buffer[*result_array_len];
+      (*result_array)[*result_array_len] = buffer[*result_array_len];
     }
   }
 
@@ -787,7 +787,7 @@ GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int
       return;
     }
     for (*result_array_len = 0; *result_array_len <= (int)idx; (*result_array_len)++) {
-      *result_array[*result_array_len] = buffer[*result_array_len];
+      (*result_array)[*result_array_len] = buffer[*result_array_len];
     }
   }
 

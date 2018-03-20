@@ -419,6 +419,33 @@ test_serialisation(struct GARN(table) * table1, struct test_data * test_dataset)
   printf("tested serialisation.\n");
 }
 
+void
+test_extraction(struct GARN(table) * tbl)
+{
+  GARN(key_t) * keys = NULL;
+  int keys_len;
+  GARN(data_t) * values = NULL;
+  int values_len;
+
+  GARN(keys_of_table)(tbl, &keys, &keys_len);
+  GARN(values_of_table)(tbl, &values, &values_len);
+
+  assert(values_len == keys_len);
+  printf("extracted kv arrays: they have %d elements\n", keys_len);
+#if 0
+  for (int i = 0; i < keys_len; i++) {
+    printf("\t%d\t%d\n", keys[i], values[i]);
+  }
+#endif
+
+  if (NULL != keys) {
+    free(keys);
+  }
+  if (NULL != values) {
+    free(values);
+  }
+}
+
 int
 main()
 {
@@ -480,6 +507,8 @@ main()
   printf("\n");
 
   test_serialisation(my_tab, test_dataset);
+
+  test_extraction(my_tab);
 
   GARN(destroy_table)(my_tab);
   free(test_dataset);
