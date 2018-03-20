@@ -711,6 +711,90 @@ GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(t
   return 0;
 }
 
+void
+GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * result_array_len)
+{
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(GARN(key_t));
+  GARN(key_t) * buffer = malloc(buffer_size);
+  if (NULL == buffer) {
+    *result_array = NULL;
+    *result_array_len = -1;
+    return;
+  }
+
+  unsigned idx = 0;
+
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+    lock_index(t, table_idx);
+    for (int entry_idx = 0; entry_idx < NUM_CELL_ENTRIES; entry_idx++) {
+      if (! t->cell[table_idx].entry[entry_idx].clear) {
+        buffer[idx] = t->cell[table_idx].entry[entry_idx].key;
+        idx += 1;
+      }
+    }
+    unlock_index(t, table_idx);
+  }
+
+  if (0 == idx) {
+    *result_array = NULL;
+  } else {
+    *result_array = malloc(idx * sizeof(GARN(key_t)));
+    if (NULL == *result_array) {
+      *result_array_len = -1;
+      return;
+    }
+    for (*result_array_len = 0; *result_array_len <= (int)idx; (*result_array_len)++) {
+      *result_array[*result_array_len] = buffer[*result_array_len];
+    }
+  }
+
+  free(buffer);
+  *result_array_len = (int)idx;
+  return;
+}
+
+void
+GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int * result_array_len)
+{
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(GARN(value_t));
+  GARN(value_t) * buffer = malloc(buffer_size);
+  if (NULL == buffer) {
+    *result_array = NULL;
+    *result_array_len = -1;
+    return;
+  }
+
+  unsigned idx = 0;
+
+  for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
+    lock_index(t, table_idx);
+    for (int entry_idx = 0; entry_idx < NUM_CELL_ENTRIES; entry_idx++) {
+      if (! t->cell[table_idx].entry[entry_idx].clear) {
+        buffer[idx] = t->cell[table_idx].entry[entry_idx].value;
+        idx += 1;
+      }
+    }
+    unlock_index(t, table_idx);
+  }
+
+  if (0 == idx) {
+    *result_array = NULL;
+  } else {
+    *result_array = malloc(idx * sizeof(GARN(value_t)));
+    if (NULL == *result_array) {
+      *result_array_len = -1;
+      return;
+    }
+    for (*result_array_len = 0; *result_array_len <= (int)idx; (*result_array_len)++) {
+      *result_array[*result_array_len] = buffer[*result_array_len];
+    }
+  }
+
+  free(buffer);
+  *result_array_len = (int)idx;
+  return;
+}
+
 int
 GARN(rand_range)(int min, int max)
 {

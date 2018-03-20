@@ -30,3 +30,6 @@ enum GARN(outcome) GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(
 
 int GARN(serialise_table)(struct GARN(table) * t, char ** buffer);
 int GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(table) * t);
+
+void GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * result_array_len);
+void GARN(values_of_table)(struct GARN(table) * t, GARN(data_t) ** result_array, int * result_array_len);
