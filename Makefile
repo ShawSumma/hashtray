@@ -62,25 +62,27 @@ multithreaded_test.o : multithreaded_test.c garnish_M100.o garnish.h garnish_M10
 multiprocess_test.o : multiprocess_test.c garnish_P100.o garnish_M100_config.h garnish_P100.h
 	$(CC) $(CFLAGS) -c multiprocess_test.c -o $@
 
-garnish_test: singlethreaded_test.o garnish_S1000.o garnish.h garnish_S1000_config.h garnish_hash_S1000.o
+garnish_test: singlethreaded_test.o garnish_S1000.o garnish_hash_S1000.o
 	$(CC) $(CFLAGS) singlethreaded_test.o garnish_S1000.o garnish_hash_S1000.o -o $@
 
-garnish_multithreaded: multithreaded_test.o garnish_M100.o garnish.h garnish_M100_config.h garnish_hash_M100.o
-	$(CC) -include garnish_M100_config.h -include garnish.h $(CFLAGS) -lpthread multithreaded_test.o garnish_M100.o garnish_hash_M100.o -o $@
+garnish_multithreaded: multithreaded_test.o garnish_M100.o garnish_hash_M100.o
+	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
-garnish_2tables: headers 2tables.c garnish_M100.o garnish_S1000.o garnish_hash_S1000.o
-	$(CC) $(CFLAGS) -lpthread garnish_M100.o garnish_S1000.o garnish_hash_M100.o garnish_hash_S1000.o 2tables.c -o $@
+garnish_2tables: 2tables.c garnish_M100.o garnish_S1000.o garnish_hash_S1000.o garnish_hash_M100.o
+	make garnish_M100.h
+	make garnish_S1000.h
+	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
 garnish_multiprocess: multiprocess_test.o garnish_P100.o garnish_hash_P100.o
-	$(CC) $(CFLAGS) multiprocess_test.o garnish_P100.o garnish_hash_P100.o -o $@
+	$(CC) $(CFLAGS) $^ -o $@
 
 # NOTE using uthash is optional. To use it clone the uthash repo in the UTHASH directory, and build the uthash-related targets. See DEVELOPER.md for more info.
 UTHASH=uthash
 garnish_M100_uthash.o : garnish_uthash.c
 	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -I$(UTHASH)/include -c $(CFLAGS) garnish_uthash.c -o $@
 
-garnish_multithreaded_uthash: multithreaded_test.o garnish_M100_uthash.o garnish.h garnish_M100_config.h garnish_hash_M100.o
-	$(CC) -include garnish_M100_config.h -include garnish.h $(CFLAGS) -lpthread multithreaded_test.o garnish_M100_uthash.o garnish_hash_M100.o -o $@
+garnish_multithreaded_uthash: multithreaded_test.o garnish_M100_uthash.o garnish_hash_M100.o
+	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
 tests: garnish_test garnish_multithreaded garnish_2tables garnish_multiprocess
 
