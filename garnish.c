@@ -57,18 +57,14 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include <sys/types.h>
 #endif // MULTIPROCESS
 
+#include "garnish_hash.h"
+
 struct idxs {
   GARN(key_t) idx[CHOICES];
 };
 
 static GARN(key_t) alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint);
 static struct idxs idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint);
-
-static GARN(key_t) fingerprint_of_DATA_TYPE(GARN(data_t) data);
-
-// FIXME ideally hashing functions would be parameters
-static uint16_t hash_of_uint32_to_uint16(uint32_t data);
-static GARN(key_t) hash_of_KEY_TYPE(int k, GARN(key_t) data);
 
 struct entry {
   bool clear;
@@ -160,7 +156,7 @@ reset_collision(void)
 bool
 has_collided(GARN(data_t) data, GARN(value_t) queried_metadata) {
   assert(collision_idx > 0);
-  GARN(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
+  GARN(key_t) fingerprint = GARN(fingerprint_of_DATA_TYPE)(data);
   bool found_collision = false;
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
@@ -180,52 +176,11 @@ const char * GARN(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
 static GARN(key_t)
-hash_of_KEY_TYPE(int k, GARN(key_t) data)
-{
-/* FIXME old
-  int hash = data + (data * k) + k;
-  // NOTE based on http://www.azillionmonkeys.com/qed/hash.html
-  hash ^= hash << (3 + k);
-  hash += hash >> 5;
-  hash ^= hash << 4;
-  hash += hash >> (17 - k);
-  hash += hash << 6;
-*/
-
-  // NOTE based on djb2 at: http://www.cse.yorku.ca/~oz/hash.html
-  long long hash = 5381 * k + k;
-  char * buf = (char *)&data;
-  for (unsigned i = 0; i < sizeof(GARN(data_t)); i++) {
-    hash = hash * 33 ^ buf[i];
-  }
-
-  return ((GARN(key_t))hash) % TABLE_SIZE;
-}
-
-static uint16_t
-hash_of_uint32_to_uint16(uint32_t data)
-{
-  union {
-    uint32_t as_uint32_t;
-    uint16_t as_uint16_t[2];
-  } conversion;
-  conversion.as_uint32_t = data;
-  return hash_of_KEY_TYPE(0, conversion.as_uint16_t[0]) ^
-    hash_of_KEY_TYPE(1, conversion.as_uint16_t[1]);
-}
-
-static GARN(key_t)
-fingerprint_of_DATA_TYPE(GARN(data_t) data)
-{
-  return hash_of_uint32_to_uint16(data);
-}
-
-static GARN(key_t)
 alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint)
 {
   // FIXME assuming CHOICE==2
-  GARN(key_t) h1 = hash_of_KEY_TYPE(0, fingerprint);
-  GARN(key_t) h2 = hash_of_KEY_TYPE(1, fingerprint);
+  GARN(key_t) h1 = GARN(hash_of_KEY_TYPE)(0, fingerprint);
+  GARN(key_t) h2 = GARN(hash_of_KEY_TYPE)(1, fingerprint);
   if (idx == h1) {
     return h2;
   } else {
@@ -240,9 +195,9 @@ struct idxs
 idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint)
 {
   struct idxs result;
-  *fingerprint = fingerprint_of_DATA_TYPE(data);
+  *fingerprint = GARN(fingerprint_of_DATA_TYPE)(data);
   for (int i = 0; i < CHOICES; i++) {
-    result.idx[i] = hash_of_KEY_TYPE(i, *fingerprint);
+    result.idx[i] = GARN(hash_of_KEY_TYPE)(i, *fingerprint);
   }
   // FIXME how do we ensure that, for all i and j, result.idx[i] != result.idx[j]
 #ifdef GARNISH_ASSERT
