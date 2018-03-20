@@ -14,12 +14,20 @@ table: for example, it does not place any constraints over when or how this
 interface can be used.
 
 Such constraints are properties of *derivations* of the API. For example,
-[garnish_M100_config.h]() is used for a form of the API that is specialised to
-support a table of 100 cells and is thread-safe, whereas
-[garnish_S1000_config.h]() supports 1000 cells and isn't thread-safe.
+[garnish_M100_config.h]() is used to derive `garnish_M100.h`, that is the API
+specialised to support a table of 100 cells and is thread-safe, whereas
+[garnish_S1000_config.h]() is used to derive `garnish_S1000.h`, that supports
+1000 cells and isn't thread-safe.
 
 # Instances
-(TODO)
+An instance implements a derived API.
+For example, `garnish_M100.o` implements `garnish_M100_config.h`.
+Adding an instance consists of implementing the garnish API -- for example
+three instances are implemented in [garnish.c]().
+
+[2tables.c]() shows how to simultaneously use different garnish instances.
+Applications might need to simultaneously use different instances for different
+purposes; we came across this need in other work.
 
 # Adding hashing function implementations
 (TODO)
