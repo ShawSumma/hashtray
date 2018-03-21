@@ -59,3 +59,11 @@ garnish_M100_uthash.o : garnish_uthash.c
 
 garnish_multithreaded_uthash: multithreaded_test.o garnish_M100_uthash.o garnish_hash_M100.o
 	$(CC) $(CFLAGS) -lpthread $^ -o $@
+
+# NOTE using SipHash is optional. To use it clone the SipHash repo in the SIPHASH directory, and build the SipHash-related targets. See DEVELOPER.md for more info.
+SIPHASH=SipHash
+garnish_siphash_M100.o : garnish_hash.c
+	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -c $(CFLAGS) sip_hash.c -o $@
+
+garnish_multithreaded_siphash: multithreaded_test.o garnish_M100.o garnish_siphash_M100.o $(SIPHASH)/halfsiphash.o
+	$(CC) $(CFLAGS) -lpthread $^ -o $@

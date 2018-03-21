@@ -30,7 +30,15 @@ Applications might need to simultaneously use different instances for different
 purposes; we came across this need in other work.
 
 # Adding hashing function implementations
-(TODO)
+For an example we show how to replace the (keyed) hash function used in Garnish
+with [SipHash](https://131002.net/siphash/). The code is in [sip_hash.c]()
+and can be built using `make garnish_multithreaded_siphash`.
+
+Before running that command make sure to have cloned the [SipHash
+repo](https://github.com/veorq/SipHash) and run `gcc -c halfsiphash.c` in that
+directory.
+Then update the `SIPHASH` variable in [Makefile.targets]() to the repo's path.
+By default I set `SIPHASH=SipHash` since I clone SipHash within garnish's directory.
 
 # Wrapping existing table implementations (to instantiate derivated APIs)
 Applications can use libgarnish's API when using existing/external hashtable implementations.
@@ -42,5 +50,5 @@ To try it out, run `make garnish_M100_uthash.o`.
 To see an example of this in use in one of the tests, run `make garnish_multithreaded_uthash`.
 
 To set things up, clone the [uthash](https://github.com/troydhanson/uthash) repo.
-and update the `UTHASH` variable in [Makefile]() to the repo's path.
+and update the `UTHASH` variable in [Makefile.targets]() to the repo's path.
 By default I set `UTHASH=uthash` since I clone uthash within garnish's directory.
