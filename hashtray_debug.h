@@ -3,17 +3,17 @@ Debugging support for libgarnish.
 Nik Sultana, University of Pennsylvania, November 2017
 */
 
-#ifndef GARNISH_DEBUG
-#define GARNISH_DEBUG
+#ifndef HASHTRAY_DEBUG
+#define HASHTRAY_DEBUG
 
-extern const char * GARN(outcome_str)[];
+extern const char * HASHTRAY(outcome_str)[];
 #define PRINT_OUTCOME(o) { \
-  printf("%s\n", GARN(outcome_str)[o]); \
+  printf("%s\n", HASHTRAY(outcome_str)[o]); \
 }
 
-typedef unsigned outcome_count[GARN(END_MARKER)];
+typedef unsigned outcome_count[HASHTRAY(END_MARKER)];
 #define RESET_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < GARN(END_MARKER); i++) { \
+  for (int i = 0; i < HASHTRAY(END_MARKER); i++) { \
     outcome_count[i] = 0; \
   } \
 }
@@ -21,8 +21,8 @@ typedef unsigned outcome_count[GARN(END_MARKER)];
   outcome_count[o] += 1; \
 }
 #define PRINT_OUTCOME_STATS(outcome_count) { \
-  for (int i = 0; i < GARN(END_MARKER); i++) { \
-    printf("%s=%d ", GARN(outcome_str)[i], outcome_count[i]); \
+  for (int i = 0; i < HASHTRAY(END_MARKER); i++) { \
+    printf("%s=%d ", HASHTRAY(outcome_str)[i], outcome_count[i]); \
   } \
   printf("\n"); \
 }
@@ -49,4 +49,4 @@ void reset_collision(void);
 bool has_collided(DATA_TYPE data, VALUE_TYPE queried_metadata);
 #endif // REMEMBER_COLLISIONS
 
-#endif // GARNISH_DEBUG
+#endif // HASHTRAY_DEBUG

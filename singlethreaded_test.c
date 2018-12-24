@@ -1,5 +1,5 @@
 /*
-Single-threaded tester for libgarnish.
+Single-threaded tester for libhashtray.
 Measures the kickouts etc of the partial-key cuckoo hash implementation, and performs correctness testing using the debug functions.
 Nik Sultana, University of Pennsylvania, November 2017
 
@@ -24,13 +24,13 @@ TODO
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "garnish.h"
-#include "garnish_debug.h"
+#include "hashtray.h"
+#include "hashtray_debug.h"
 
 #define TEST_DATASET_SIZE 5000
 struct test_data {
-  GARN(data_t) datum;
-  GARN(value_t) metadatum;
+  HASHTRAY(data_t) datum;
+  HASHTRAY(value_t) metadatum;
 };
 
 #define TARGET_CORE 0/*FIXME const*/
@@ -52,38 +52,38 @@ cool_cache(void)
 }
 
 void
-simple_test(GARN(data_t) data, GARN(data_t) metadata)
+simple_test(HASHTRAY(data_t) data, HASHTRAY(data_t) metadata)
 {
   printf("simple_test: create table, query for a piece of data, insert data, query for that data, reinsert(update) data, requery for that data, delete that data, re-delete that data, re-query for that data, destroy table.\n");
-  struct GARN(table) * my_tab = GARN(create_table)();
-  enum GARN(outcome) o;
-  GARN(data_t) queried_metadata = 0;
-  o = GARN(lookup)(my_tab, data, &queried_metadata, NULL);
-  assert(GARN(NOT_FOUND) == o);
+  struct HASHTRAY(table) * my_tab = HASHTRAY(create_table)();
+  enum HASHTRAY(outcome) o;
+  HASHTRAY(data_t) queried_metadata = 0;
+  o = HASHTRAY(lookup)(my_tab, data, &queried_metadata, NULL);
+  assert(HASHTRAY(NOT_FOUND) == o);
 
-  o = GARN(insert)(my_tab, data, metadata, NULL, NULL);
-  assert(GARN(OK) == o);
+  o = HASHTRAY(insert)(my_tab, data, metadata, NULL, NULL);
+  assert(HASHTRAY(OK) == o);
 
-  o = GARN(lookup)(my_tab, data, &queried_metadata, NULL);
-  assert(GARN(OK) == o);
+  o = HASHTRAY(lookup)(my_tab, data, &queried_metadata, NULL);
+  assert(HASHTRAY(OK) == o);
   assert(queried_metadata == metadata);
 
-  o = GARN(insert)(my_tab, data, metadata + 1, NULL, NULL);
-  assert(GARN(OK) == o);
+  o = HASHTRAY(insert)(my_tab, data, metadata + 1, NULL, NULL);
+  assert(HASHTRAY(OK) == o);
 
-  o = GARN(lookup)(my_tab, data, &queried_metadata, NULL);
-  assert(GARN(OK) == o);
+  o = HASHTRAY(lookup)(my_tab, data, &queried_metadata, NULL);
+  assert(HASHTRAY(OK) == o);
   assert(queried_metadata == (metadata + 1));
 
-  o = GARN(delete)(my_tab, data);
-  assert(GARN(OK) == o);
+  o = HASHTRAY(delete)(my_tab, data);
+  assert(HASHTRAY(OK) == o);
 
-  o = GARN(delete)(my_tab, data);
-  assert(GARN(NOT_FOUND) == o);
-  o = GARN(lookup)(my_tab, data, &queried_metadata, NULL);
-  assert(GARN(NOT_FOUND) == o);
+  o = HASHTRAY(delete)(my_tab, data);
+  assert(HASHTRAY(NOT_FOUND) == o);
+  o = HASHTRAY(lookup)(my_tab, data, &queried_metadata, NULL);
+  assert(HASHTRAY(NOT_FOUND) == o);
 
-  GARN(destroy_table)(my_tab);
+  HASHTRAY(destroy_table)(my_tab);
 }
 
 // Based on https://stackoverflow.com/questions/14783782/which-inline-assembly-code-is-correct-for-rdtscp#14783909
@@ -112,7 +112,7 @@ update_stats(int iteration, uint64_t time_before, uint64_t time_after,
 }
 
 void
-lookup_test(struct test_data * test_dataset, struct GARN(table) * test_table)
+lookup_test(struct test_data * test_dataset, struct HASHTRAY(table) * test_table)
 {
   uint64_t average = 0;
   uint64_t max = 0;
@@ -120,23 +120,23 @@ lookup_test(struct test_data * test_dataset, struct GARN(table) * test_table)
 
   bool temporary_table = false;
   if (NULL == test_table) {
-    test_table = GARN(create_table)();
+    test_table = HASHTRAY(create_table)();
     temporary_table = true;
   }
 
-  enum GARN(outcome) o;
+  enum HASHTRAY(outcome) o;
 
   outcome_count oc;
   RESET_OUTCOME_STATS(oc)
 
-  GARN(data_t) queried_metadata = 0;
+  HASHTRAY(data_t) queried_metadata = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    GARN(data_t) data;
+    HASHTRAY(data_t) data;
 
     if (NULL != test_dataset) {
       data = test_dataset[i].datum;
     } else {
-      data = (GARN(data_t))GARN(rand_range)(0, INT_MAX);
+      data = (HASHTRAY(data_t))HASHTRAY(rand_range)(0, INT_MAX);
     }
 
 #if COOL_THE_CACHE
@@ -145,23 +145,23 @@ lookup_test(struct test_data * test_dataset, struct GARN(table) * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = GARN(lookup)(test_table, data, &queried_metadata, NULL);
+    o = HASHTRAY(lookup)(test_table, data, &queried_metadata, NULL);
     uint64_t two = rdtscp(&aux);
 
 #if 0
     PRINT_OUTCOME(o);
 #endif
     if (temporary_table) {
-      assert(GARN(NOT_FOUND) == o);
+      assert(HASHTRAY(NOT_FOUND) == o);
     } else {
-      assert(GARN(OK) == o || // Everything in test_dataset should appear in test_table...
-             GARN(NOT_FOUND) == o/*..but it might not appear, if it's been kicked
+      assert(HASHTRAY(OK) == o || // Everything in test_dataset should appear in test_table...
+             HASHTRAY(NOT_FOUND) == o/*..but it might not appear, if it's been kicked
                              out: there's a check for this further down.*/);
-      if (GARN(OK) == o) {
+      if (HASHTRAY(OK) == o) {
         // Check if this fails because of collision.
         if (queried_metadata != test_dataset[i].metadatum) {
 #if 0
-          GARN(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
+          HASHTRAY(key_t) fingerprint = fingerprint_of_DATA_TYPE(data);
           printf("Unexpected result for data=%d (key=%d): expected %d but retrieved %d\n",
               data, fingerprint, test_dataset[i].metadatum, queried_metadata);
 #endif
@@ -172,7 +172,7 @@ lookup_test(struct test_data * test_dataset, struct GARN(table) * test_table)
 #endif
 #endif // REMEMBER_COLLISIONS
         }
-      } else if (GARN(NOT_FOUND) == o) {
+      } else if (HASHTRAY(NOT_FOUND) == o) {
 #ifdef REMEMBER_LOSS
         // We expect this item to have been found, so it must have overflowed.
         assert(has_overflowed(data));
@@ -184,7 +184,7 @@ lookup_test(struct test_data * test_dataset, struct GARN(table) * test_table)
   }
 
   if (temporary_table) {
-    GARN(destroy_table)(test_table);
+    HASHTRAY(destroy_table)(test_table);
   }
 
   printf("lookup_test min / average / max duration: %llu / %llu / %llu ticks\n",
@@ -205,19 +205,19 @@ generate_test_input(void)
 {
   struct test_data * result = malloc(sizeof(struct test_data) * TEST_DATASET_SIZE);
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    result[i].datum = (GARN(data_t))i;
-    result[i].metadatum = (GARN(value_t))i;
+    result[i].datum = (HASHTRAY(data_t))i;
+    result[i].metadatum = (HASHTRAY(value_t))i;
   }
-#ifdef GARNISH_LOG_INSERTS
+#ifdef HASHTRAY_LOG_INSERTS
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
     printf("Test entry %d: (%d, %d)\n", i, result[i].datum, result[i].metadatum);
   }
-#endif // GARNISH_LOG_INSERTS
+#endif // HASHTRAY_LOG_INSERTS
   return result;
 }
 
 struct test_data *
-insert_test(struct GARN(table) * test_table)
+insert_test(struct HASHTRAY(table) * test_table)
 {
   assert(NULL != test_table);
 
@@ -227,7 +227,7 @@ insert_test(struct GARN(table) * test_table)
 
   struct test_data * result = generate_test_input();
 
-  enum GARN(outcome) o;
+  enum HASHTRAY(outcome) o;
 
   outcome_count oc;
   RESET_OUTCOME_STATS(oc)
@@ -239,13 +239,13 @@ insert_test(struct GARN(table) * test_table)
 
     uint32_t aux;
     uint64_t one = rdtscp(&aux);
-    o = GARN(insert)(test_table, result[i].datum, result[i].metadatum, NULL, NULL);
+    o = HASHTRAY(insert)(test_table, result[i].datum, result[i].metadatum, NULL, NULL);
     uint64_t two = rdtscp(&aux);
 #if 0
     PRINT_OUTCOME(o);
 #endif
-    assert(GARN(OK) == o || // Assuming that table doesn't fill up...
-           GARN(GAVE_UP) == o/*... otherwise we might give up trying to add an item
+    assert(HASHTRAY(OK) == o || // Assuming that table doesn't fill up...
+           HASHTRAY(GAVE_UP) == o/*... otherwise we might give up trying to add an item
                          (after MAX_KICKOUTS has been exceeded).*/);
 
     INCREMENT_OUTCOME(oc, o)
@@ -293,11 +293,11 @@ mix_insert_lookup_test(void)
 
   enum {INSERT = 0, INSERT_AND_LOOKUP = 1, LOOKUP = 2} state;
 
-  struct GARN(table) * test_table = GARN(create_table)();
-  enum GARN(outcome) o;
+  struct HASHTRAY(table) * test_table = HASHTRAY(create_table)();
+  enum HASHTRAY(outcome) o;
 
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    switch (GARN(rand_range)(INSERT, LOOKUP)) {
+    switch (HASHTRAY(rand_range)(INSERT, LOOKUP)) {
       case 0:
         state = INSERT;
         break;
@@ -311,8 +311,8 @@ mix_insert_lookup_test(void)
         assert(0);
     }
 
-    GARN(data_t) data = (GARN(data_t))GARN(rand_range)(0, INT_MAX);
-    GARN(value_t) queried_metadata = (GARN(value_t))GARN(rand_range)(0, INT_MAX);
+    HASHTRAY(data_t) data = (HASHTRAY(data_t))HASHTRAY(rand_range)(0, INT_MAX);
+    HASHTRAY(value_t) queried_metadata = (HASHTRAY(value_t))HASHTRAY(rand_range)(0, INT_MAX);
 
 #if COOL_THE_CACHE
     (void)cool_cache();
@@ -325,39 +325,39 @@ mix_insert_lookup_test(void)
     switch (state) {
     case INSERT:
       one = rdtscp(&aux);
-      o = GARN(insert)(test_table, data, queried_metadata, NULL, NULL);
+      o = HASHTRAY(insert)(test_table, data, queried_metadata, NULL, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(GARN(GAVE_UP) == o ||
-             GARN(OK) == o);
+      assert(HASHTRAY(GAVE_UP) == o ||
+             HASHTRAY(OK) == o);
       INCREMENT_OUTCOME(oc_insert, o)
       update_stats(i, one, two, &average_insert, &max_insert, &min_insert);
       break;
 
     case INSERT_AND_LOOKUP:
-      (void)GARN(insert)(test_table, data, queried_metadata, NULL, NULL);
+      (void)HASHTRAY(insert)(test_table, data, queried_metadata, NULL, NULL);
       one = rdtscp(&aux);
-      o = GARN(lookup)(test_table, data, &queried_metadata, NULL);
+      o = HASHTRAY(lookup)(test_table, data, &queried_metadata, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(GARN(OK) == o);
+      assert(HASHTRAY(OK) == o);
       INCREMENT_OUTCOME(oc_lookup_expectfind, o)
       update_stats(i, one, two, &average_lookup_expectfind, &max_lookup_expectfind, &min_lookup_expectfind);
       break;
 
     case LOOKUP:
       one = rdtscp(&aux);
-      o = GARN(lookup)(test_table, data, &queried_metadata, NULL);
+      o = HASHTRAY(lookup)(test_table, data, &queried_metadata, NULL);
       two = rdtscp(&aux);
 #if 0
       PRINT_OUTCOME(o);
 #endif
-      assert(GARN(NOT_FOUND) == o ||
-             GARN(OK) == o /*This can occur if:
+      assert(HASHTRAY(NOT_FOUND) == o ||
+             HASHTRAY(OK) == o /*This can occur if:
                        * we happen to regenerate a random value that was previously generated during the INSERT phase
                        * in case of a false-positive (unless we started with an empty table and didn't insert anything).*/);
       INCREMENT_OUTCOME(oc_lookup_notexpectfind, o)
@@ -366,7 +366,7 @@ mix_insert_lookup_test(void)
     }
   }
 
-  GARN(destroy_table)(test_table);
+  HASHTRAY(destroy_table)(test_table);
 
   printf("mix_insert_lookup_test:INSERT min / average / max duration: %llu / %llu / %llu ticks\n",
       min_insert, average_insert, max_insert);
@@ -382,34 +382,34 @@ mix_insert_lookup_test(void)
 }
 
 void
-test_serialisation(struct GARN(table) * table1, struct test_data * test_dataset)
+test_serialisation(struct HASHTRAY(table) * table1, struct test_data * test_dataset)
 {
   char * buffer1 = NULL;
-  int buf_size1 = GARN(serialise_table)(table1, &buffer1);
+  int buf_size1 = HASHTRAY(serialise_table)(table1, &buffer1);
   assert(buf_size1 > 0);
 
-  struct GARN(table) * table2 = GARN(create_table)();
-  int result = GARN(deserialise_table)(buffer1, buf_size1, table2);
+  struct HASHTRAY(table) * table2 = HASHTRAY(create_table)();
+  int result = HASHTRAY(deserialise_table)(buffer1, buf_size1, table2);
   assert(result >= 0);
 
   char * buffer2 = NULL;
-  int buf_size2 = GARN(serialise_table)(table2, &buffer2);
+  int buf_size2 = HASHTRAY(serialise_table)(table2, &buffer2);
   assert(buf_size1 == buf_size2);
 
   for (int i = 0; i < buf_size2; i++) {
     assert(buffer1[i] == buffer2[i]);
   }
 
-  enum GARN(outcome) o1;
-  enum GARN(outcome) o2;
-  GARN(value_t) queried_metadata1 = 0;
-  GARN(value_t) queried_metadata2 = 0;
+  enum HASHTRAY(outcome) o1;
+  enum HASHTRAY(outcome) o2;
+  HASHTRAY(value_t) queried_metadata1 = 0;
+  HASHTRAY(value_t) queried_metadata2 = 0;
   for (int i = 0; i < TEST_DATASET_SIZE; i++) {
-    o1 = GARN(lookup)(table1, test_dataset[i].datum, &queried_metadata1, NULL);
-    o2 = GARN(lookup)(table2, test_dataset[i].datum, &queried_metadata2, NULL);
+    o1 = HASHTRAY(lookup)(table1, test_dataset[i].datum, &queried_metadata1, NULL);
+    o2 = HASHTRAY(lookup)(table2, test_dataset[i].datum, &queried_metadata2, NULL);
     assert(o1 == o2);
     assert(queried_metadata1 == queried_metadata2);
-    if (GARN(OK) == o1) {
+    if (HASHTRAY(OK) == o1) {
       // assert(queried_metadata1 == test_dataset[i].metadatum); This is too
       //    strong since might have had condition. See code around the
       //    comment "Check if this fails because of collision" above.
@@ -420,15 +420,15 @@ test_serialisation(struct GARN(table) * table1, struct test_data * test_dataset)
 }
 
 void
-test_extraction(struct GARN(table) * tbl)
+test_extraction(struct HASHTRAY(table) * tbl)
 {
-  GARN(key_t) * keys = NULL;
+  HASHTRAY(key_t) * keys = NULL;
   int keys_len;
-  GARN(data_t) * values = NULL;
+  HASHTRAY(data_t) * values = NULL;
   int values_len;
 
-  GARN(keys_of_table)(tbl, &keys, &keys_len);
-  GARN(values_of_table)(tbl, &values, &values_len);
+  HASHTRAY(keys_of_table)(tbl, &keys, &keys_len);
+  HASHTRAY(values_of_table)(tbl, &values, &values_len);
 
   assert(values_len == keys_len);
   printf("extracted kv arrays: they have %d elements\n", keys_len);
@@ -477,11 +477,11 @@ main()
   printf("\n");
 
   // Test 2: How long insertion takes
-  // (We can set a compilation directive for garnish to record hash collisions)
+  // (We can set a compilation directive for hashtray to record hash collisions)
   // (We generate the data by enumeration, not randomisation, so we shouldn't try to insert the same item twice.)
   // Generate test data, store in memory so we can later test lookups against it..
   // Execute the insertion based on the test data, and time it.
-  struct GARN(table) * my_tab = GARN(create_table)();
+  struct HASHTRAY(table) * my_tab = HASHTRAY(create_table)();
   printf("Insertion test (of unique data items) into an empty table.\n");
   struct test_data * test_dataset = insert_test(my_tab);
   printf("\n");
@@ -510,7 +510,7 @@ main()
 
   test_extraction(my_tab);
 
-  GARN(destroy_table)(my_tab);
+  HASHTRAY(destroy_table)(my_tab);
   free(test_dataset);
 
   printf("done\n");

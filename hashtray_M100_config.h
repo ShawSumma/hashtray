@@ -26,4 +26,4 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #define MULTITHREADED
 
-#define GARN(X) GARN_ ## M100 ## _ ## X
+#define HASHTRAY(X) HASHTRAY_ ## M100 ## _ ## X

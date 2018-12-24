@@ -1,5 +1,5 @@
 /*
-Example of using 2 tables simultaneously from libgarnish
+Example of using 2 tables simultaneously from libhashtray
 Nik Sultana, University of Pennsylvania, February 2018
 */
 
@@ -7,28 +7,28 @@ Nik Sultana, University of Pennsylvania, February 2018
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "garnish_M100.h"
-#include "garnish_S1000.h"
+#include "hashtray_M100.h"
+#include "hashtray_S1000.h"
 
 int
 main() {
-  struct GARN_M100_table * tM = GARN_M100_create_table();
-  struct GARN_S1000_table * tS = GARN_S1000_create_table();
+  struct HASHTRAY_M100_table * tM = HASHTRAY_M100_create_table();
+  struct HASHTRAY_S1000_table * tS = HASHTRAY_S1000_create_table();
 
-  GARN_M100_data_t dataM = 1;
-  GARN_M100_data_t metadataM = 1;
-  enum GARN_M100_outcome oM;
-  oM = GARN_M100_insert(tM, dataM, metadataM, NULL, NULL);
-  assert(GARN_M100_OK == oM);
+  HASHTRAY_M100_data_t dataM = 1;
+  HASHTRAY_M100_data_t metadataM = 1;
+  enum HASHTRAY_M100_outcome oM;
+  oM = HASHTRAY_M100_insert(tM, dataM, metadataM, NULL, NULL);
+  assert(HASHTRAY_M100_OK == oM);
 
-  GARN_S1000_data_t dataS = 2;
-  GARN_S1000_data_t metadataS = 2;
-  enum GARN_S1000_outcome oS;
-  oS = GARN_S1000_insert(tS, dataS, metadataS, NULL, NULL);
-  assert(GARN_S1000_OK == oM);
+  HASHTRAY_S1000_data_t dataS = 2;
+  HASHTRAY_S1000_data_t metadataS = 2;
+  enum HASHTRAY_S1000_outcome oS;
+  oS = HASHTRAY_S1000_insert(tS, dataS, metadataS, NULL, NULL);
+  assert(HASHTRAY_S1000_OK == oM);
 
   // FIXME elaborate this example further
 
-  GARN_M100_destroy_table(tM);
-  GARN_S1000_destroy_table(tS);
+  HASHTRAY_M100_destroy_table(tM);
+  HASHTRAY_S1000_destroy_table(tS);
 }

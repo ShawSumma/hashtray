@@ -1,69 +1,69 @@
-# libgarnish
+# libhashtray
 # Nik Sultana, University of Pennsylvania, November 2017
 
 
-garnish_M100.h : garnish.h garnish_M100_config.h
-	$(CC) -include garnish_M100_config.h $(CFLAGS) -E garnish.h -o $@
+hashtray_M100.h : hashtray.h hashtray_M100_config.h
+	$(CC) -include hashtray_M100_config.h $(CFLAGS) -E hashtray.h -o $@
 
-garnish_S1000.h : garnish.h garnish_S1000_config.h
-	$(CC) -include garnish_S1000_config.h $(CFLAGS) -E garnish.h -o $@
+hashtray_S1000.h : hashtray.h hashtray_S1000_config.h
+	$(CC) -include hashtray_S1000_config.h $(CFLAGS) -E hashtray.h -o $@
 
-garnish_P100.h : garnish.h garnish_P100_config.h
-	$(CC) -include garnish_P100_config.h $(CFLAGS) -E garnish.h -o $@
+hashtray_P100.h : hashtray.h hashtray_P100_config.h
+	$(CC) -include hashtray_P100_config.h $(CFLAGS) -E hashtray.h -o $@
 
-garnish_hash_M100.o : garnish_hash.c
-	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -c $(CFLAGS) garnish_hash.c -o $@
+hashtray_hash_M100.o : hashtray_hash.c
+	$(CC) -include stdint.h -include hashtray_M100_config.h -include hashtray.h -c $(CFLAGS) hashtray_hash.c -o $@
 
-garnish_M100.o : garnish.c
-	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -c $(CFLAGS) garnish.c -o $@
+hashtray_M100.o : hashtray.c
+	$(CC) -include stdint.h -include hashtray_M100_config.h -include hashtray.h -c $(CFLAGS) hashtray.c -o $@
 
-garnish_hash_S1000.o : garnish_hash.c
-	$(CC) -include stdint.h -include garnish_S1000_config.h -include garnish.h -c $(CFLAGS) garnish_hash.c -o $@
+hashtray_hash_S1000.o : hashtray_hash.c
+	$(CC) -include stdint.h -include hashtray_S1000_config.h -include hashtray.h -c $(CFLAGS) hashtray_hash.c -o $@
 
-garnish_S1000.o : garnish.c
-	$(CC) -include stdint.h -include garnish_S1000_config.h -include garnish.h -c $(CFLAGS) garnish.c -o $@
+hashtray_S1000.o : hashtray.c
+	$(CC) -include stdint.h -include hashtray_S1000_config.h -include hashtray.h -c $(CFLAGS) hashtray.c -o $@
 
-garnish_hash_P100.o : garnish_hash.c
-	$(CC) -include stdint.h -include garnish_P100_config.h -include garnish.h -c $(CFLAGS) garnish_hash.c -o $@
+hashtray_hash_P100.o : hashtray_hash.c
+	$(CC) -include stdint.h -include hashtray_P100_config.h -include hashtray.h -c $(CFLAGS) hashtray_hash.c -o $@
 
-garnish_P100.o : garnish.c
-	$(CC) -include stdint.h -include garnish_P100_config.h -include garnish.h -c $(CFLAGS) garnish.c -o $@
+hashtray_P100.o : hashtray.c
+	$(CC) -include stdint.h -include hashtray_P100_config.h -include hashtray.h -c $(CFLAGS) hashtray.c -o $@
 
-singlethreaded_test.o : singlethreaded_test.c garnish_S1000.o garnish.h garnish_S1000_config.h
-	$(CC) -include garnish_S1000_config.h $(CFLAGS) -c singlethreaded_test.c -o $@
+singlethreaded_test.o : singlethreaded_test.c hashtray_S1000.o hashtray.h hashtray_S1000_config.h
+	$(CC) -include hashtray_S1000_config.h $(CFLAGS) -c singlethreaded_test.c -o $@
 
-multithreaded_test.o : multithreaded_test.c garnish_M100.o garnish.h garnish_M100_config.h
-	$(CC) -include garnish_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
+multithreaded_test.o : multithreaded_test.c hashtray_M100.o hashtray.h hashtray_M100_config.h
+	$(CC) -include hashtray_M100_config.h $(CFLAGS) -c multithreaded_test.c -o $@
 
-multiprocess_test.o : multiprocess_test.c garnish_P100.o garnish_M100_config.h garnish_P100.h
+multiprocess_test.o : multiprocess_test.c hashtray_P100.o hashtray_M100_config.h hashtray_P100.h
 	$(CC) $(CFLAGS) -c multiprocess_test.c -o $@
 
-garnish_test: singlethreaded_test.o garnish_S1000.o garnish_hash_S1000.o
-	$(CC) $(CFLAGS) singlethreaded_test.o garnish_S1000.o garnish_hash_S1000.o -o $@
+hashtray_test: singlethreaded_test.o hashtray_S1000.o hashtray_hash_S1000.o
+	$(CC) $(CFLAGS) singlethreaded_test.o hashtray_S1000.o hashtray_hash_S1000.o -o $@
 
-garnish_multithreaded: multithreaded_test.o garnish_M100.o garnish_hash_M100.o
+hashtray_multithreaded: multithreaded_test.o hashtray_M100.o hashtray_hash_M100.o
 	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
-garnish_2tables: 2tables.c garnish_M100.o garnish_S1000.o garnish_hash_S1000.o garnish_hash_M100.o
-	make garnish_M100.h
-	make garnish_S1000.h
+hashtray_2tables: 2tables.c hashtray_M100.o hashtray_S1000.o hashtray_hash_S1000.o hashtray_hash_M100.o
+	make hashtray_M100.h
+	make hashtray_S1000.h
 	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
-garnish_multiprocess: multiprocess_test.o garnish_P100.o garnish_hash_P100.o
+hashtray_multiprocess: multiprocess_test.o hashtray_P100.o hashtray_hash_P100.o
 	$(CC) $(CFLAGS) $^ -o $@
 
 # NOTE using uthash is optional. To use it clone the uthash repo in the UTHASH directory, and build the uthash-related targets. See DEVELOPER.md for more info.
 UTHASH=uthash
-garnish_M100_uthash.o : garnish_uthash.c
-	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -I$(UTHASH)/include -c $(CFLAGS) garnish_uthash.c -o $@
+hashtray_M100_uthash.o : hashtray_uthash.c
+	$(CC) -include stdint.h -include hashtray_M100_config.h -include hashtray.h -I$(UTHASH)/include -c $(CFLAGS) hashtray_uthash.c -o $@
 
-garnish_multithreaded_uthash: multithreaded_test.o garnish_M100_uthash.o garnish_hash_M100.o
+hashtray_multithreaded_uthash: multithreaded_test.o hashtray_M100_uthash.o hashtray_hash_M100.o
 	$(CC) $(CFLAGS) -lpthread $^ -o $@
 
 # NOTE using SipHash is optional. To use it clone the SipHash repo in the SIPHASH directory, and build the SipHash-related targets. See DEVELOPER.md for more info.
 SIPHASH=SipHash
-garnish_siphash_M100.o : garnish_hash.c
-	$(CC) -include stdint.h -include garnish_M100_config.h -include garnish.h -c $(CFLAGS) sip_hash.c -o $@
+hashtray_siphash_M100.o : hashtray_hash.c
+	$(CC) -include stdint.h -include hashtray_M100_config.h -include hashtray.h -c $(CFLAGS) sip_hash.c -o $@
 
-garnish_multithreaded_siphash: multithreaded_test.o garnish_M100.o garnish_siphash_M100.o $(SIPHASH)/halfsiphash.o
+hashtray_multithreaded_siphash: multithreaded_test.o hashtray_M100.o hashtray_siphash_M100.o $(SIPHASH)/halfsiphash.o
 	$(CC) $(CFLAGS) -lpthread $^ -o $@

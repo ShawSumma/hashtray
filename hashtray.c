@@ -9,18 +9,18 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 */
 
 
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
 #include <assert.h>
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #ifdef REMEMBER_COLLISIONS
 #include <assert.h>
 #include "stdio.h"
 #endif // REMEMBER_COLLISIONS
 
-#ifdef GARNISH_LOG_INSERTS
+#ifdef HASHTRAY_LOG_INSERTS
 #include <stdio.h>
-#endif // GARNISH_LOG_INSERTS
+#endif // HASHTRAY_LOG_INSERTS
 
 #ifdef REMEMBER_LOSS
 #include <assert.h>
@@ -28,7 +28,7 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #endif // REMEMBER_LOSS
 
 #if defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
-#include "garnish_debug.h"
+#include "hashtray_debug.h"
 #endif // defined(REMEMBER_LOSS) || defined(REMEMBER_COLLISIONS)
 
 #include <errno.h>
@@ -57,26 +57,26 @@ NOTE: this code is thread-safe in "regular mode", but the debug
 #include <sys/types.h>
 #endif // MULTIPROCESS
 
-#include "garnish_hash.h"
+#include "hashtray_hash.h"
 
 struct idxs {
-  GARN(key_t) idx[CHOICES];
+  HASHTRAY(key_t) idx[CHOICES];
 };
 
-static GARN(key_t) alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint);
-static struct idxs idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint);
+static HASHTRAY(key_t) alt_idx(HASHTRAY(key_t) idx, HASHTRAY(key_t) fingerprint);
+static struct idxs idxs_of_DATA_TYPE(HASHTRAY(data_t) data, HASHTRAY(key_t) * fingerprint);
 
 struct entry {
   bool clear;
-  GARN(key_t) key;
-  GARN(value_t) value;
+  HASHTRAY(key_t) key;
+  HASHTRAY(value_t) value;
 };
 
 struct cell {
   struct entry entry[NUM_CELL_ENTRIES];
 };
 
-struct GARN(table) {
+struct HASHTRAY(table) {
   struct cell cell[TABLE_SIZE];
 #ifdef MULTITHREADED
   pthread_mutex_t lock[TABLE_SIZE];
@@ -113,7 +113,7 @@ reset_overfill(void)
 }
 
 bool
-has_overflowed(GARN(data_t) data) {
+has_overflowed(HASHTRAY(data_t) data) {
   // Check if the item is in the "overflow" array.
   bool item_found = false;
   for (int idx = 0; idx < overfill_idx; idx++) {
@@ -154,9 +154,9 @@ reset_collision(void)
 }
 
 bool
-has_collided(GARN(data_t) data, GARN(value_t) queried_metadata) {
+has_collided(HASHTRAY(data_t) data, HASHTRAY(value_t) queried_metadata) {
   assert(collision_idx > 0);
-  GARN(key_t) fingerprint = GARN(fingerprint_of_DATA_TYPE)(data);
+  HASHTRAY(key_t) fingerprint = HASHTRAY(fingerprint_of_DATA_TYPE)(data);
   bool found_collision = false;
   for (int idx = 0; idx < collision_idx; idx++) {
     if (fingerprint == collision.entry[idx].key ||
@@ -172,45 +172,45 @@ has_collided(GARN(data_t) data, GARN(value_t) queried_metadata) {
 }
 #endif // REMEMBER_COLLISIONS
 
-const char * GARN(outcome_str)[] =
+const char * HASHTRAY(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-static GARN(key_t)
-alt_idx(GARN(key_t) idx, GARN(key_t) fingerprint)
+static HASHTRAY(key_t)
+alt_idx(HASHTRAY(key_t) idx, HASHTRAY(key_t) fingerprint)
 {
   // FIXME assuming CHOICE==2
-  GARN(key_t) h1 = GARN(hash_of_KEY_TYPE)(0, fingerprint);
-  GARN(key_t) h2 = GARN(hash_of_KEY_TYPE)(1, fingerprint);
+  HASHTRAY(key_t) h1 = HASHTRAY(hash_of_KEY_TYPE)(0, fingerprint);
+  HASHTRAY(key_t) h2 = HASHTRAY(hash_of_KEY_TYPE)(1, fingerprint);
   if (idx == h1) {
     return h2;
   } else {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
     assert(idx == h2);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
     return h1;
   }
 }
 
 struct idxs
-idxs_of_DATA_TYPE(GARN(data_t) data, GARN(key_t) * fingerprint)
+idxs_of_DATA_TYPE(HASHTRAY(data_t) data, HASHTRAY(key_t) * fingerprint)
 {
   struct idxs result;
-  *fingerprint = GARN(fingerprint_of_DATA_TYPE)(data);
+  *fingerprint = HASHTRAY(fingerprint_of_DATA_TYPE)(data);
   for (int i = 0; i < CHOICES; i++) {
-    result.idx[i] = GARN(hash_of_KEY_TYPE)(i, *fingerprint);
+    result.idx[i] = HASHTRAY(hash_of_KEY_TYPE)(i, *fingerprint);
   }
   // FIXME how do we ensure that, for all i and j, result.idx[i] != result.idx[j]
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   for (int i = 0; i < CHOICES; i++) {
     assert((int)result.idx[i] >= 0);
     assert((int)result.idx[i] < TABLE_SIZE);
   }
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
   return result;
 }
 
 static inline void
-unlock_index(struct GARN(table) * t, int table_idx) {
+unlock_index(struct HASHTRAY(table) * t, int table_idx) {
   int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
@@ -220,21 +220,21 @@ unlock_index(struct GARN(table) * t, int table_idx) {
 
 #elif defined(MULTITHREADED)
   error = pthread_mutex_unlock(&(t->lock[table_idx]));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #elif defined(MULTIPROCESS)
   error = sem_post(t->lock[table_idx]);
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #endif
 }
 
 static inline void
-lock_index(struct GARN(table) * t, int table_idx) {
+lock_index(struct HASHTRAY(table) * t, int table_idx) {
   int error;
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
@@ -244,21 +244,21 @@ lock_index(struct GARN(table) * t, int table_idx) {
 
 #elif defined(MULTITHREADED)
   error = pthread_mutex_lock(&(t->lock[table_idx]));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #elif defined(MULTIPROCESS)
   error = sem_wait(t->lock[table_idx]);
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #endif
 }
 
 static inline void
-lock_indices(struct GARN(table) * t, struct idxs is) {
+lock_indices(struct HASHTRAY(table) * t, struct idxs is) {
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -303,7 +303,7 @@ lock_indices(struct GARN(table) * t, struct idxs is) {
 }
 
 static inline void
-unlock_indices_except(struct GARN(table) * t, struct idxs is, int * opt_dont_unlock) {
+unlock_indices_except(struct HASHTRAY(table) * t, struct idxs is, int * opt_dont_unlock) {
 #if !defined(MULTITHREADED) && !defined(MULTIPROCESS)
   // Do nothing
 
@@ -322,17 +322,17 @@ unlock_indices_except(struct GARN(table) * t, struct idxs is, int * opt_dont_unl
 #endif
 }
 
-enum GARN(outcome)
-GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
-   int (*merge_fun)(GARN(data_t) * stored, const GARN(data_t) * new),
-   int (*expiry_fun)(const GARN(data_t) * metadata))
+enum HASHTRAY(outcome)
+HASHTRAY(insert)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data, HASHTRAY(data_t) metadata,
+   int (*merge_fun)(HASHTRAY(data_t) * stored, const HASHTRAY(data_t) * new),
+   int (*expiry_fun)(const HASHTRAY(data_t) * metadata))
 {
-  GARN(key_t) fingerprint;
+  HASHTRAY(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
-#ifdef GARNISH_LOG_INSERTS
+#ifdef HASHTRAY_LOG_INSERTS
   printf("data=%u metadata=%d fingerprint=%d is.idx[0]=%d is.idx[1]=%d\n",
       data, metadata, fingerprint, is.idx[0], is.idx[1]);
-#endif // GARNISH_LOG_INSERTS
+#endif // HASHTRAY_LOG_INSERTS
 
   lock_indices(t, is);
 
@@ -343,21 +343,21 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
       if (!t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         // We judge that a collision has occurred.
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
         assert(collision_idx < NUM_COLLIDED_ENTRIES);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
         collision.entry[collision_idx].key = fingerprint;
         collision.entry[collision_idx].value = metadata;
         collision.collided_with[collision_idx].key = t->cell[table_idx].entry[i].key;
         collision.collided_with[collision_idx].value = t->cell[table_idx].entry[i].value;
-#ifdef GARNISH_DESCRIBE_COLLISIONS
+#ifdef HASHTRAY_DESCRIBE_COLLISIONS
         printf("(%d, %d) collided with (%d, %d) on table_idx=%d, entry=%d\n",
         collision.entry[collision_idx].key,
         collision.entry[collision_idx].value,
         collision.collided_with[collision_idx].key,
         collision.collided_with[collision_idx].value,
         table_idx, i);
-#endif // GARNISH_DESCRIBE_COLLISIONS
+#endif // HASHTRAY_DESCRIBE_COLLISIONS
         collision_idx += 1;
       }
     }
@@ -398,10 +398,10 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 
   int delete = 0;
   if (exists) {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
     assert(!t->cell[table_idx].entry[entry_idx].clear);
     assert(t->cell[table_idx].entry[entry_idx].key == fingerprint);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
     if (NULL == merge_fun) {
       t->cell[table_idx].entry[entry_idx].value = metadata;
     } else {
@@ -420,20 +420,20 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
     // We can unlock everything and return.
     unlock_indices_except(t, is, NULL);
     if (0 != delete) {
-      return GARN(NOT_FOUND);
+      return HASHTRAY(NOT_FOUND);
     } else {
-      return GARN(OK);
+      return HASHTRAY(OK);
     }
   }
 
   // At this point we haven't been able to make the insertion, since both cells
   // were already full.
-#ifdef GARNISH_FAIL_EAGERLY
+#ifdef HASHTRAY_FAIL_EAGERLY
   // Unlock everything and give up.
   unlock_indices_except(t, is, NULL);
 
-  return GARN(BLOCKS_FULL);
-#else // ndef GARNISH_FAIL_EAGERLY
+  return HASHTRAY(BLOCKS_FULL);
+#else // ndef HASHTRAY_FAIL_EAGERLY
 
   table_idx = (int)is.idx[(int)rand() % CHOICES];
 
@@ -441,8 +441,8 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
   // choose _not_ to kick stuff out of and continue.
   unlock_indices_except(t, is, &table_idx);
 
-  GARN(key_t) swapped_key;
-  GARN(value_t) swapped_value;
+  HASHTRAY(key_t) swapped_key;
+  HASHTRAY(value_t) swapped_value;
   for (int try_num = 0; try_num < MAX_KICKOUTS; try_num++) {
     int entry = (int)rand() % NUM_CELL_ENTRIES;
     // FIXME could iterate through entries to find a free one, rather do
@@ -475,7 +475,7 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
       unlock_index(t, table_idx);
       // We have filled an empty entry (i.e., it's "clear" flag was set) so
       // there's no need to do further kicking.
-      return GARN(OK);
+      return HASHTRAY(OK);
     }
 
     fingerprint = swapped_key;
@@ -486,7 +486,7 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
     //      that is, pick some other fingerprint in the current block and
     //      attempt to kick it, rather than the current fingerprint; but it's
     //      not obvious which to pick, so the current approach feels simplest.
-    table_idx = (int)alt_idx((GARN(key_t))table_idx, fingerprint);
+    table_idx = (int)alt_idx((HASHTRAY(key_t))table_idx, fingerprint);
     lock_index(t, table_idx);
   }
 
@@ -503,15 +503,15 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
   overfill.entry[overfill_idx].value = metadata;
   overfill_idx += 1;
 #endif // REMEMBER_LOSS
-  return GARN(GAVE_UP);
-#endif // GARNISH_FAIL_EAGERLY
+  return HASHTRAY(GAVE_UP);
+#endif // HASHTRAY_FAIL_EAGERLY
 }
 
-enum GARN(outcome)
-GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
+enum HASHTRAY(outcome)
+HASHTRAY(delete)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data)
 {
-  enum GARN(outcome) result = GARN(NOT_FOUND);
-  GARN(key_t) fingerprint;
+  enum HASHTRAY(outcome) result = HASHTRAY(NOT_FOUND);
+  HASHTRAY(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -521,12 +521,12 @@ GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
       if (! t->cell[table_idx].entry[i].clear &&
           t->cell[table_idx].entry[i].key == fingerprint) {
         t->cell[table_idx].entry[i].clear = true;
-        result = GARN(OK);
+        result = HASHTRAY(OK);
         break;
       }
     }
 
-    if (GARN(OK) == result) {
+    if (HASHTRAY(OK) == result) {
       break;
     }
   }
@@ -535,13 +535,13 @@ GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
   return result;
 }
 
-enum GARN(outcome)
-GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
-    int (*apply_fun)(GARN(data_t) * metadata))
+enum HASHTRAY(outcome)
+HASHTRAY(lookup)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data, HASHTRAY(data_t) * metadata,
+    int (*apply_fun)(HASHTRAY(data_t) * metadata))
 {
   bool done = false;
-  enum GARN(outcome) result = GARN(NOT_FOUND);
-  GARN(key_t) fingerprint;
+  enum HASHTRAY(outcome) result = HASHTRAY(NOT_FOUND);
+  HASHTRAY(key_t) fingerprint;
   struct idxs is = idxs_of_DATA_TYPE(data, &fingerprint);
   lock_indices(t, is);
 
@@ -558,10 +558,10 @@ GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
 
         if (0 != delete) {
           t->cell[table_idx].entry[i].clear = 1;
-          result = GARN(NOT_FOUND);
+          result = HASHTRAY(NOT_FOUND);
         } else {
           *metadata = t->cell[table_idx].entry[i].value;
-          result = GARN(OK);
+          result = HASHTRAY(OK);
         }
         done = true;
         break;
@@ -581,21 +581,21 @@ GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
 static void
 semaphore_name(char * buf, int i) {
   // FIXME not checking buf size
-  sprintf(buf, "/GARN_sem_%d"/*FIXME const -- make this into parameter*/,
+  sprintf(buf, "/HASHTRAY_sem_%d"/*FIXME const -- make this into parameter*/,
       i);
 }
 #endif // MULTIPROCESS
 
-struct GARN(table) *
-GARN(create_table)(void)
+struct HASHTRAY(table) *
+HASHTRAY(create_table)(void)
 {
 #ifdef MULTIPROCESS
-  struct GARN(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
-#ifdef GARNISH_ASSERT
-    assert(MAP_FAILED != t); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+  struct HASHTRAY(table) * t = mmap(NULL, sizeof(*t), PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_SHARED, -1, 0);
+#ifdef HASHTRAY_ASSERT
+    assert(MAP_FAILED != t); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 #else
-  struct GARN(table) * t = malloc(sizeof(*t));
+  struct HASHTRAY(table) * t = malloc(sizeof(*t));
 #endif // MULTIPROCESS
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
     for (int i = 0; i < NUM_CELL_ENTRIES; i++) {
@@ -603,9 +603,9 @@ GARN(create_table)(void)
     }
 #ifdef MULTITHREADED
     int error = pthread_mutex_init(&(t->lock[table_idx]), NULL);
-#ifdef GARNISH_ASSERT
-    assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+    assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
@@ -617,9 +617,9 @@ GARN(create_table)(void)
     char name[20];
     semaphore_name(name, table_idx);
     t->lock[table_idx] = sem_open(name, O_CREAT /* FIXME | O_EXCL*/, 0600, 1);
-#ifdef GARNISH_ASSERT
-    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+    assert(SEM_FAILED != t->lock[table_idx]); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 #endif
 #endif // MULTIPROCESS
   }
@@ -627,44 +627,44 @@ GARN(create_table)(void)
 }
 
 void
-GARN(destroy_table)(struct GARN(table) * t)
+HASHTRAY(destroy_table)(struct HASHTRAY(table) * t)
 {
   int error;
   for (int table_idx = 0; table_idx < TABLE_SIZE; table_idx++) {
 #ifdef MULTITHREADED
     error = pthread_mutex_destroy(&(t->lock[table_idx]));
-#ifdef GARNISH_ASSERT
-    assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+    assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 #endif // MULTITHREADED
 
 #ifdef MULTIPROCESS
     error = sem_close(t->lock[table_idx]);
-#ifdef GARNISH_ASSERT
-    assert(0 == error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+    assert(0 == error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
     char name[20];
     semaphore_name(name, table_idx);
     error = sem_unlink(name);
-#ifdef GARNISH_ASSERT
-    assert(0 == error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+    assert(0 == error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #endif // MULTIPROCESS
   }
 #ifdef MULTIPROCESS
   error = munmap(t, sizeof(*t));
-#ifdef GARNISH_ASSERT
-  assert(0 == error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(0 == error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 #else
   free(t);
 #endif // MULTIPROCESS
 }
 
 int
-GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
+HASHTRAY(serialise_table)(struct HASHTRAY(table) * t, char ** buffer)
 {
   const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
   *buffer = malloc(buffer_size);
@@ -687,7 +687,7 @@ GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
 }
 
 int
-GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(table) * t)
+HASHTRAY(deserialise_table)(const char * buffer, const int buffer_len, struct HASHTRAY(table) * t)
 {
   if (NULL == buffer) {
     return -1;
@@ -712,10 +712,10 @@ GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(t
 }
 
 void
-GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * result_array_len)
+HASHTRAY(keys_of_table)(struct HASHTRAY(table) * t, HASHTRAY(key_t) ** result_array, int * result_array_len)
 {
-  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(GARN(key_t));
-  GARN(key_t) * buffer = malloc(buffer_size);
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(HASHTRAY(key_t));
+  HASHTRAY(key_t) * buffer = malloc(buffer_size);
   if (NULL == buffer) {
     *result_array = NULL;
     *result_array_len = -1;
@@ -738,7 +738,7 @@ GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * r
   if (0 == idx) {
     *result_array = NULL;
   } else {
-    *result_array = malloc(idx * sizeof(GARN(key_t)));
+    *result_array = malloc(idx * sizeof(HASHTRAY(key_t)));
     if (NULL == *result_array) {
       *result_array_len = -1;
       return;
@@ -753,12 +753,12 @@ GARN(keys_of_table)(struct GARN(table) * t, GARN(key_t) ** result_array, int * r
   return;
 }
 
-// NOTE DRY principle: this code is very similar to that of GARN(keys_of_table)() (except that it uses values instead of keys).
+// NOTE DRY principle: this code is very similar to that of HASHTRAY(keys_of_table)() (except that it uses values instead of keys).
 void
-GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int * result_array_len)
+HASHTRAY(values_of_table)(struct HASHTRAY(table) * t, HASHTRAY(value_t) ** result_array, int * result_array_len)
 {
-  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(GARN(value_t));
-  GARN(value_t) * buffer = malloc(buffer_size);
+  const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(HASHTRAY(value_t));
+  HASHTRAY(value_t) * buffer = malloc(buffer_size);
   if (NULL == buffer) {
     *result_array = NULL;
     *result_array_len = -1;
@@ -781,7 +781,7 @@ GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int
   if (0 == idx) {
     *result_array = NULL;
   } else {
-    *result_array = malloc(idx * sizeof(GARN(value_t)));
+    *result_array = malloc(idx * sizeof(HASHTRAY(value_t)));
     if (NULL == *result_array) {
       *result_array_len = -1;
       return;
@@ -797,12 +797,12 @@ GARN(values_of_table)(struct GARN(table) * t, GARN(value_t) ** result_array, int
 }
 
 int
-GARN(rand_range)(int min, int max)
+HASHTRAY(rand_range)(int min, int max)
 {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   assert(min >= 0);
   assert(max >= min);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
   if (min == max) {
     return min;

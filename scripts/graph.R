@@ -1,4 +1,4 @@
-# Graphing for results of the simulation built using libgarnish.
+# Graphing for results of the simulation built using libhashtray.
 # Nik Sultana, UPenn, January 2018
 #
 # Usage: R --vanilla  < graph.R

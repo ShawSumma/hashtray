@@ -13,7 +13,7 @@ for PGC in `seq 0 1 100`
 do
   for ITERATION in `seq 1 5`
   do
-    ./garnish_multithreaded -g ${PGC} $@
+    ./hashtray_multithreaded -g ${PGC} $@
     # FIXME check exit status
   done | awk -v pgc="${PGC}" \
     'BEGIN { min = max = "nan"; sum = 0}

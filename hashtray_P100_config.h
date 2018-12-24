@@ -26,4 +26,4 @@ Nik Sultana, University of Pennsylvania, November 2017
 
 #define MULTIPROCESS
 
-#define GARN(X) GARN_ ## P100 ## _ ## X
+#define HASHTRAY(X) HASHTRAY_ ## P100 ## _ ## X

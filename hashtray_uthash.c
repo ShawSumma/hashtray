@@ -1,20 +1,20 @@
 /*
-Instantiating garnish API using uthash, for testing.
+Instantiating hashtray API using uthash, for testing.
 Nik Sultana, University of Pennsylvania, February 2018
 */
 
 // NOTE I only define this for specific experiments.
 //#define INFINITE_TABLE
 
-#ifdef GARNISH_UTHASH_DEBUG
+#ifdef HASHTRAY_UTHASH_DEBUG
 #include <stdio.h>
-#endif // GARNISH_UTHASH_DEBUG
+#endif // HASHTRAY_UTHASH_DEBUG
 
 #include "uthash.h"
 
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
 #include <assert.h>
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #ifndef MULTITHREADED
 #error This table instance requires MULTITHREADED
@@ -23,34 +23,34 @@ Nik Sultana, University of Pennsylvania, February 2018
 #endif // MULTITHREADED
 
 struct entry {
-   GARN(data_t) key; // NOTE not using GARN(key_t) since that's the type of fingerprints
-   GARN(value_t) value;
+   HASHTRAY(data_t) key; // NOTE not using HASHTRAY(key_t) since that's the type of fingerprints
+   HASHTRAY(value_t) value;
    UT_hash_handle hh;
 };
 
-struct GARN(table) {
+struct HASHTRAY(table) {
   struct entry * table;
   pthread_mutex_t lock;
 };
 
-const char * GARN(outcome_str)[] =
+const char * HASHTRAY(outcome_str)[] =
   {"OK", "NOT_FOUND", "GAVE_UP", "BLOCKS_FULL"};
 
-enum GARN(outcome)
-GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
-   int (*merge_fun)(GARN(data_t) * stored, const GARN(data_t) * new),
-   int (*expiry_fun)(const GARN(data_t) * metadata))
+enum HASHTRAY(outcome)
+HASHTRAY(insert)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data, HASHTRAY(data_t) metadata,
+   int (*merge_fun)(HASHTRAY(data_t) * stored, const HASHTRAY(data_t) * new),
+   int (*expiry_fun)(const HASHTRAY(data_t) * metadata))
 {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (NULL == merge_fun);
   assert (NULL == expiry_fun);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
   int error = pthread_mutex_lock(&(t->lock));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
 #ifndef INFINITE_TABLE
   // Enforce TABLE_SIZE unless modelling perfection
@@ -74,18 +74,18 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
 //  if (HASH_COUNT(t->table) > 800000/*FIXME const*/) {
 
     // Simple eviction policy:
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
     assert (NULL != t->table);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
     struct entry * first = t->table;
     HASH_DEL(t->table, first); // Remove first element in the table
     free(first);
   }
 #endif // INFINITE_TABLE
 
-#ifdef GARNISH_UTHASH_DEBUG
+#ifdef HASHTRAY_UTHASH_DEBUG
   printf("=%d\n", HASH_COUNT(t->table));
-#endif // GARNISH_UTHASH_DEBUG
+#endif // HASHTRAY_UTHASH_DEBUG
   struct entry * record = malloc(sizeof(*record));
   record->key = data;
   record->value = metadata;
@@ -93,79 +93,79 @@ GARN(insert)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) metadata,
   HASH_ADD_INT/*FIXME assume specific type of key*/(t->table, key, record);
 
   error = pthread_mutex_unlock(&(t->lock));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
-  return GARN(OK); // FIXME const
+  return HASHTRAY(OK); // FIXME const
 }
 
-enum GARN(outcome)
-GARN(delete)(struct GARN(table) * t, GARN(data_t) data)
+enum HASHTRAY(outcome)
+HASHTRAY(delete)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data)
 {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (0);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
   free(-1);
-  return GARN(OK); // NOTE control shouldn't arrive here.
+  return HASHTRAY(OK); // NOTE control shouldn't arrive here.
 }
 
-enum GARN(outcome)
-GARN(lookup)(struct GARN(table) * t, GARN(data_t) data, GARN(data_t) * metadata,
-    int (*apply_fun)(GARN(data_t) * metadata))
+enum HASHTRAY(outcome)
+HASHTRAY(lookup)(struct HASHTRAY(table) * t, HASHTRAY(data_t) data, HASHTRAY(data_t) * metadata,
+    int (*apply_fun)(HASHTRAY(data_t) * metadata))
 {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   // This feature is not supported for this hashtable instance.
   assert (NULL == apply_fun);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
-  enum GARN(outcome) result = GARN(NOT_FOUND);
+  enum HASHTRAY(outcome) result = HASHTRAY(NOT_FOUND);
   struct entry * retrieved = NULL;
 
   int error = pthread_mutex_lock(&(t->lock));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
-#ifdef GARNISH_UTHASH_DEBUG
+#ifdef HASHTRAY_UTHASH_DEBUG
   printf("[%d\n", HASH_COUNT(t->table));
-#endif // GARNISH_UTHASH_DEBUG
+#endif // HASHTRAY_UTHASH_DEBUG
   HASH_FIND_INT/*FIXME assume specific type of key*/(t->table, &data, retrieved);
   if (NULL != retrieved) {
     *metadata = retrieved->value;
-    result = GARN(OK);
+    result = HASHTRAY(OK);
   }
 
   error = pthread_mutex_unlock(&(t->lock));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
   return result;
 }
 
-struct GARN(table) *
-GARN(create_table)(void)
+struct HASHTRAY(table) *
+HASHTRAY(create_table)(void)
 {
-  struct GARN(table) * result = malloc(sizeof(*result));
+  struct HASHTRAY(table) * result = malloc(sizeof(*result));
   result->table = NULL;
 
   int error = pthread_mutex_init(&(result->lock), NULL);
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
   return result;
 }
 
 void
-GARN(destroy_table)(struct GARN(table) * t)
+HASHTRAY(destroy_table)(struct HASHTRAY(table) * t)
 {
   int error = pthread_mutex_destroy(&(t->lock));
-#ifdef GARNISH_ASSERT
-  assert(!error); // FIXME check when !GARNISH_ASSERT
-#endif // GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
+  assert(!error); // FIXME check when !HASHTRAY_ASSERT
+#endif // HASHTRAY_ASSERT
 
   // uthash table is destroyed automatically by uthash when it's vacated, so should simply vacate it.
   struct entry * cursor;
@@ -179,7 +179,7 @@ GARN(destroy_table)(struct GARN(table) * t)
 }
 
 int
-GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
+HASHTRAY(serialise_table)(struct HASHTRAY(table) * t, char ** buffer)
 {
   const int buffer_size = TABLE_SIZE * NUM_CELL_ENTRIES * sizeof(struct entry);
   *buffer = malloc(buffer_size);
@@ -200,7 +200,7 @@ GARN(serialise_table)(struct GARN(table) * t, char ** buffer)
 }
 
 int
-GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(table) * t)
+HASHTRAY(deserialise_table)(const char * buffer, const int buffer_len, struct HASHTRAY(table) * t)
 {
   if (NULL == buffer) {
     return -1;
@@ -223,12 +223,12 @@ GARN(deserialise_table)(const char * buffer, const int buffer_len, struct GARN(t
 }
 
 int
-GARN(rand_range)(int min, int max)
+HASHTRAY(rand_range)(int min, int max)
 {
-#ifdef GARNISH_ASSERT
+#ifdef HASHTRAY_ASSERT
   assert(min >= 0);
   assert(max >= min);
-#endif // GARNISH_ASSERT
+#endif // HASHTRAY_ASSERT
 
   if (min == max) {
     return min;

@@ -1,8 +1,8 @@
 /*
-wrapper to use SipHash in garnish
+wrapper to use SipHash in hashtray
 Nik Sultana, University of Pennsylvania, March 2018
 
-NOTE this file is based on garnish_hash.c
+NOTE this file is based on hashtray_hash.c
 */
 
 #include <stddef.h>
@@ -13,23 +13,23 @@ int halfsiphash(const uint8_t *in, const size_t inlen, const uint8_t *k,
 
 static uint16_t hash_of_uint32_to_uint16(uint32_t data);
 
-GARN(key_t)
-GARN(hash_of_KEY_TYPE)(int k, GARN(key_t) data)
+HASHTRAY(key_t)
+HASHTRAY(hash_of_KEY_TYPE)(int k, HASHTRAY(key_t) data)
 {
-  //assert(2 = sizeof(GARN(key_t)));
-  uint8_t * hash = malloc(sizeof(GARN(key_t)));
+  //assert(2 = sizeof(HASHTRAY(key_t)));
+  uint8_t * hash = malloc(sizeof(HASHTRAY(key_t)));
   uint8_t hash_key = (uint8_t)k;
 
-  halfsiphash((const uint8_t *)&data, sizeof(GARN(key_t)),
-      &hash_key, hash, sizeof(GARN(key_t)));
+  halfsiphash((const uint8_t *)&data, sizeof(HASHTRAY(key_t)),
+      &hash_key, hash, sizeof(HASHTRAY(key_t)));
 
-  GARN(key_t) result = (GARN(key_t))(*hash);
+  HASHTRAY(key_t) result = (HASHTRAY(key_t))(*hash);
   free(hash);
 
-  return ((GARN(key_t))result) % TABLE_SIZE;
+  return ((HASHTRAY(key_t))result) % TABLE_SIZE;
 }
 
-// NOTE copied from garnish_hash.c
+// NOTE copied from hashtray_hash.c
 static uint16_t
 hash_of_uint32_to_uint16(uint32_t data)
 {
@@ -38,13 +38,13 @@ hash_of_uint32_to_uint16(uint32_t data)
     uint16_t as_uint16_t[2];
   } conversion;
   conversion.as_uint32_t = data;
-  return GARN(hash_of_KEY_TYPE)(0, conversion.as_uint16_t[0]) ^
-    GARN(hash_of_KEY_TYPE)(1, conversion.as_uint16_t[1]);
+  return HASHTRAY(hash_of_KEY_TYPE)(0, conversion.as_uint16_t[0]) ^
+    HASHTRAY(hash_of_KEY_TYPE)(1, conversion.as_uint16_t[1]);
 }
 
-// NOTE copied from garnish_hash.c
-GARN(key_t)
-GARN(fingerprint_of_DATA_TYPE)(GARN(data_t) data)
+// NOTE copied from hashtray_hash.c
+HASHTRAY(key_t)
+HASHTRAY(fingerprint_of_DATA_TYPE)(HASHTRAY(data_t) data)
 {
   return hash_of_uint32_to_uint16(data);
 }
