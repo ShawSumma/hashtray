@@ -31,4 +31,5 @@ include Makefile.targets
 tests: garnish_test garnish_multithreaded garnish_2tables garnish_multiprocess
 
 clean:
-	rm -f singlethreaded_test.o multithreaded_test.o garnish.o libgarnish.a garnish_test garnish_multithreaded garnish_M100.o garnish_M100.h garnish_S1000.o garnish_S1000.h garnish_2tables garnish_P100.o garnish_P100.h garnish_multiprocess multiprocess_test.o garnish_hash_S1000.o garnish_hash_M100.o garnish_hash_P100.o
+	rm -f singlethreaded_test.o multithreaded_test.o garnish.o libgarnish.a garnish_test garnish_multithreaded garnish_M100.o garnish_M100.h garnish_S1000.o garnish_S1000.h garnish_2tables garnish_P100.o garnish_P100.h garnish_multiprocess multiprocess_test.o garnish_hash_S1000.o garnish_hash_M100.o garnish_hash_P100.o \
+		garnish_M100_uthash.o garnish_multithreaded_siphash garnish_siphash_M100.o
