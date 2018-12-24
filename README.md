@@ -1,6 +1,7 @@
 # About
-**libgarnish** provides an implementation of cuckoo hashing, and can provide
-wrappers to use third-party hash tables using the same interface.
+**libgarnish** provides an implementation of [cuckoo hashing](https://en.wikipedia.org/wiki/Cuckoo_hashing),
+and can provide wrappers to use third-party hash tables using the same
+interface.
 
 The latter is useful for applications that want to use one or more of these
 hashtable implementations simultaneously.
