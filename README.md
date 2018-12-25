@@ -6,8 +6,11 @@ interface.
 The latter is useful for applications that want to use one or more of these
 hashtable implementations simultaneously.
 
+# Version
+1.0
+
 # Downloading
-(Hosting to be decided)
+[gitlab](https://www.gitlab.com/niksu/hashtray)
 
 # Building
 Running `make headers`
@@ -29,4 +32,4 @@ Email the author.
 Nik Sultana
 
 # License
-(To be decided)
+[MIT](LICENSE)
