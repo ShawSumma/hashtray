@@ -1,3 +1,5 @@
+![Hashtray logo](hashtray.png)
+
 # About
 **libhashtray** provides an implementation of [cuckoo hashing](https://en.wikipedia.org/wiki/Cuckoo_hashing),
 and can provide wrappers to use third-party hash tables using the same
